@@ -470,6 +470,50 @@ fn serve_order() {}
 - `hosting` is a **child** of `front_of_house` (declared inside it)
 - `front_of_house` is the **parent** of `hosting` (contains its declaration)
 
+> **How to visualize the module tree in your project**
+>
+> **1. Use `cargo modules` (requires cargo-modules)**
+> ```bash
+> cargo install cargo-modules
+> cargo modules generate tree
+> ```
+> Output:
+> ```
+> crate my_project
+> ├── mod front_of_house: pub
+> │   ├── mod hosting: pub
+> │   └── mod serving: pub
+> └── fn eat_at_restaurant: pub
+> ```
+>
+> **2. Use `tree` command on src/ directory**
+> ```bash
+> tree src/
+> ```
+> Shows file structure (which mirrors module structure):
+> ```
+> src/
+> ├── lib.rs
+> ├── front_of_house.rs
+> └── front_of_house/
+>     ├── hosting.rs
+>     └── serving.rs
+> ```
+>
+> **3. Generate documentation**
+> ```bash
+> cargo doc --open
+> ```
+> Cargo's documentation shows the full module hierarchy in the sidebar—great for understanding public API structure.
+>
+> **4. Quick manual check: grep for `mod` declarations**
+> ```bash
+> grep -r "^mod \|^pub mod " src/
+> ```
+> Shows all module declarations and where they are.
+>
+> **Pro tip:** File structure closely mirrors module tree for external modules, so `tree src/` is often enough!
+
 ### Module File Organization
 
 You can organize modules across files. Here's a practical example:

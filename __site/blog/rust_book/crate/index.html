@@ -465,6 +465,52 @@ fn serve_order&#40;&#41; &#123;&#125;</code></pre>
 <li><p><code>front_of_house</code> is the <strong>parent</strong> of <code>hosting</code> &#40;contains its declaration&#41;</p>
 </li>
 </ul>
+<blockquote>
+<p><strong>How to visualize the module tree in your project</strong></p>
+<p><strong>1. Use <code>cargo modules</code> &#40;requires cargo-modules&#41;</strong></p>
+</blockquote>
+<pre><code class="language-bash">&gt; cargo install cargo-modules
+&gt; cargo modules generate tree
+&gt;</code></pre>
+<blockquote>
+<p>Output:</p>
+</blockquote>
+<pre><code class="language-julia">&gt; crate my_project
+&gt; ├── mod front_of_house: pub
+&gt; │   ├── mod hosting: pub
+&gt; │   └── mod serving: pub
+&gt; └── fn eat_at_restaurant: pub
+&gt;</code></pre>
+<blockquote>
+<p><strong>2. Use <code>tree</code> command on src/ directory</strong></p>
+</blockquote>
+<pre><code class="language-bash">&gt; tree src/
+&gt;</code></pre>
+<blockquote>
+<p>Shows file structure &#40;which mirrors module structure&#41;:</p>
+</blockquote>
+<pre><code class="language-julia">&gt; src/
+&gt; ├── lib.rs
+&gt; ├── front_of_house.rs
+&gt; └── front_of_house/
+&gt;     ├── hosting.rs
+&gt;     └── serving.rs
+&gt;</code></pre>
+<blockquote>
+<p><strong>3. Generate documentation</strong></p>
+</blockquote>
+<pre><code class="language-bash">&gt; cargo doc --open
+&gt;</code></pre>
+<blockquote>
+<p>Cargo&#39;s documentation shows the full module hierarchy in the sidebar—great for understanding public API structure.</p>
+<p><strong>4. Quick manual check: grep for <code>mod</code> declarations</strong></p>
+</blockquote>
+<pre><code class="language-bash">&gt; grep -r &quot;^mod \|^pub mod &quot; src/
+&gt;</code></pre>
+<blockquote>
+<p>Shows all module declarations and where they are.</p>
+<p><strong>Pro tip:</strong> File structure closely mirrors module tree for external modules, so <code>tree src/</code> is often enough&#33;</p>
+</blockquote>
 <h3 id="module_file_organization"><a href="#module_file_organization" class="header-anchor">Module File Organization</a></h3>
 <p>You can organize modules across files. Here&#39;s a practical example:</p>
 <pre><code class="language-julia">my-restaurant/

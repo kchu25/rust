@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Understanding #[derive(Debug)] in Rust</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">rust</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="understanding_derivedebug_in_rust"><a href="#understanding_derivedebug_in_rust" class="header-anchor">Understanding #&#91;derive&#40;Debug&#41;&#93; in Rust</a></h1>
+<p>You&#39;ll often see <code>#&#91;derive&#40;Debug&#41;&#93;</code> above structs and enums in Rust code. Let&#39;s understand what it does and why it&#39;s so common.</p>
+<hr />
+<h2 id="what_is_derivedebug"><a href="#what_is_derivedebug" class="header-anchor">What is <code>#&#91;derive&#40;Debug&#41;&#93;</code>?</a></h2>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+pub struct Player &#123;
+    name: String,
+    health: u32,
+&#125;</code></pre>
+<p><strong>What it does:</strong> Automatically implements the <code>Debug</code> trait, which lets you print the struct for debugging purposes.</p>
+<hr />
+<h2 id="why_you_need_it"><a href="#why_you_need_it" class="header-anchor">Why You Need It</a></h2>
+<p><strong>With <code>Debug</code>:</strong></p>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+pub struct Player &#123;
+    name: String,
+    health: u32,
+&#125;
+
+let player &#61; Player &#123; 
+    name: &quot;Alice&quot;.to_string&#40;&#41;, 
+    health: 100 
+&#125;;
+
+println&#33;&#40;&quot;&#123;:?&#125;&quot;, player&#41;;  
+// Output: Player &#123; name: &quot;Alice&quot;, health: 100 &#125;</code></pre>
+<p><strong>Without <code>Debug</code>:</strong></p>
+<pre><code class="language-rust">pub struct Player &#123;
+    name: String,
+    health: u32,
+&#125;
+
+let player &#61; Player &#123; 
+    name: &quot;Alice&quot;.to_string&#40;&#41;, 
+    health: 100 
+&#125;;
+
+println&#33;&#40;&quot;&#123;:?&#125;&quot;, player&#41;;  
+// ✗ Error: Player doesn&#39;t implement Debug</code></pre>
+<hr />
+<h2 id="when_you_need_debug"><a href="#when_you_need_debug" class="header-anchor">When You Need <code>Debug</code></a></h2>
+<h3 id="using_format_specifier"><a href="#using_format_specifier" class="header-anchor"><ol>
+<li><p>Using <code>&#123;:?&#125;</code> format specifier</p>
+</li>
+</ol>
+</a></h3>
+<blockquote>
+<p><strong>What is <code>&#123;:?&#125;</code>?</strong></p>
+<p><code>&#123;:?&#125;</code> is a <strong>format specifier</strong> used in formatting macros like <code>println&#33;</code>, <code>format&#33;</code>, etc. It tells Rust to use the <code>Debug</code> trait to format the value.</p>
+<p>Think of it like format codes in other languages:</p>
+<ul>
+<li><p><code>&#123;&#125;</code> &#61; use <code>Display</code> trait &#40;user-friendly output&#41;</p>
+</li>
+<li><p><code>&#123;:?&#125;</code> &#61; use <code>Debug</code> trait &#40;developer-friendly output&#41;</p>
+</li>
+<li><p><code>&#123;:#?&#125;</code> &#61; use <code>Debug</code> trait with pretty-printing &#40;multi-line, indented&#41;</p>
+</li>
+</ul>
+</blockquote>
+<pre><code class="language-rust">&gt; let name &#61; &quot;Alice&quot;;
+&gt; let age &#61; 30;
+&gt; 
+&gt; println&#33;&#40;&quot;Name: &#123;&#125;&quot;, name&#41;;        // Display: Name: Alice
+&gt; println&#33;&#40;&quot;Age: &#123;:?&#125;&quot;, age&#41;;        // Debug: Age: 30
+&gt; println&#33;&#40;&quot;Data: &#123;:#?&#125;&quot;, vec&#33;&#91;1,2,3&#93;&#41;; // Pretty Debug &#40;multi-line&#41;
+&gt;</code></pre>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+struct Point &#123; x: i32, y: i32 &#125;
+
+let p &#61; Point &#123; x: 10, y: 20 &#125;;
+println&#33;&#40;&quot;&#123;:?&#125;&quot;, p&#41;;       // Point &#123; x: 10, y: 20 &#125;
+println&#33;&#40;&quot;&#123;:#?&#125;&quot;, p&#41;;      // Pretty-print &#40;multi-line&#41;
+// Output with &#123;:#?&#125;:
+// Point &#123;
+//     x: 10,
+//     y: 20,
+// &#125;</code></pre>
+<h3 id="ol_start2_using_the_dbg_macro"><a href="#ol_start2_using_the_dbg_macro" class="header-anchor"><ol start="2">
+<li><p>Using the <code>dbg&#33;&#40;&#41;</code> macro</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+struct Config &#123; port: u16, host: String &#125;
+
+let config &#61; Config &#123; 
+    port: 8080, 
+    host: &quot;localhost&quot;.to_string&#40;&#41; 
+&#125;;
+
+dbg&#33;&#40;&amp;config&#41;;  // Prints to stderr with file/line info
+// &#91;src/main.rs:10&#93; &amp;config &#61; Config &#123; port: 8080, host: &quot;localhost&quot; &#125;</code></pre>
+<h3 id="ol_start3_during_development_and_testing"><a href="#ol_start3_during_development_and_testing" class="header-anchor"><ol start="3">
+<li><p>During development and testing</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+struct User &#123; id: u32, name: String &#125;
+
+#&#91;test&#93;
+fn test_user_creation&#40;&#41; &#123;
+    let user &#61; User &#123; id: 1, name: &quot;Bob&quot;.to_string&#40;&#41; &#125;;
+    println&#33;&#40;&quot;Created user: &#123;:?&#125;&quot;, user&#41;;  // Helpful for debugging tests
+    assert_eq&#33;&#40;user.id, 1&#41;;
+&#125;</code></pre>
+<hr />
+<h2 id="debug_vs_display"><a href="#debug_vs_display" class="header-anchor"><code>Debug</code> vs <code>Display</code></a></h2>
+<pre><code class="language-rust">use std::fmt;
+
+#&#91;derive&#40;Debug&#41;&#93;
+struct Person &#123;
+    name: String,
+    age: u32,
+&#125;
+
+impl fmt::Display for Person &#123;
+    fn fmt&#40;&amp;self, f: &amp;mut fmt::Formatter&#41; -&gt; fmt::Result &#123;
+        write&#33;&#40;f, &quot;&#123;&#125; &#40;age &#123;&#125;&#41;&quot;, self.name, self.age&#41;
+    &#125;
+&#125;
+
+let person &#61; Person &#123; name: &quot;Alice&quot;.to_string&#40;&#41;, age: 30 &#125;;
+
+println&#33;&#40;&quot;&#123;:?&#125;&quot;, person&#41;;   // Debug: Person &#123; name: &quot;Alice&quot;, age: 30 &#125;
+println&#33;&#40;&quot;&#123;&#125;&quot;, person&#41;;     // Display: Alice &#40;age 30&#41;</code></pre>
+<table><tr><th align="right">Trait</th><th align="right">Format</th><th align="right">Purpose</th><th align="right">Usage</th></tr><tr><td align="right"><strong>Debug</strong></td><td align="right"><code>&#123;:?&#125;</code> or <code>&#123;:#?&#125;</code></td><td align="right">For developers &#40;debugging&#41;</td><td align="right">Can be auto-derived</td></tr><tr><td align="right"><strong>Display</strong></td><td align="right"><code>&#123;&#125;</code></td><td align="right">For end users &#40;readable output&#41;</td><td align="right">Must implement manually</td></tr></table>
+<p><strong>Rule of thumb:</strong> </p>
+<ul>
+<li><p><code>Debug</code> &#61; what developers need to see</p>
+</li>
+<li><p><code>Display</code> &#61; what users need to see</p>
+</li>
+</ul>
+<hr />
+<h2 id="other_common_derives"><a href="#other_common_derives" class="header-anchor">Other Common Derives</a></h2>
+<p><code>Debug</code> is rarely used alone. Here are common combinations:</p>
+<pre><code class="language-rust">#&#91;derive&#40;Debug, Clone&#41;&#93;
+struct Document &#123;
+    content: String,
+&#125;
+// Can debug AND clone
+
+#&#91;derive&#40;Debug, PartialEq&#41;&#93;
+struct Point &#123;
+    x: i32,
+    y: i32,
+&#125;
+// Can debug AND compare for equality
+
+#&#91;derive&#40;Debug, Clone, PartialEq, Eq, Hash&#41;&#93;
+struct UserId&#40;u64&#41;;
+// Common pattern for ID types - can do everything&#33;
+
+#&#91;derive&#40;Debug, Default&#41;&#93;
+struct Config &#123;
+    port: u16,
+    host: String,
+&#125;
+// Can debug AND create with Config::default&#40;&#41;</code></pre>
+<h3 id="most_common_derive_combinations"><a href="#most_common_derive_combinations" class="header-anchor">Most Common Derive Combinations</a></h3>
+<table><tr><th align="right">Derives</th><th align="right">Use Case</th></tr><tr><td align="right"><code>Debug</code></td><td align="right">Minimum for development</td></tr><tr><td align="right"><code>Debug, Clone</code></td><td align="right">Need to duplicate values</td></tr><tr><td align="right"><code>Debug, PartialEq</code></td><td align="right">Need to compare values</td></tr><tr><td align="right"><code>Debug, Clone, PartialEq</code></td><td align="right">Most common general-purpose</td></tr><tr><td align="right"><code>Debug, Clone, Copy</code></td><td align="right">Small types &#40;no heap data&#41;</td></tr><tr><td align="right"><code>Debug, Default</code></td><td align="right">Types with sensible default values</td></tr></table>
+<hr />
+<h2 id="how_derive_works"><a href="#how_derive_works" class="header-anchor">How <code>derive</code> Works</a></h2>
+<p>The <code>derive</code> attribute <strong>auto-generates</strong> trait implementations that you&#39;d otherwise write manually.</p>
+<p><strong>Without derive &#40;manual implementation&#41;:</strong></p>
+<pre><code class="language-rust">struct Point &#123; x: i32, y: i32 &#125;
+
+impl std::fmt::Debug for Point &#123;
+    fn fmt&#40;&amp;self, f: &amp;mut std::fmt::Formatter&lt;&#39;_&gt;&#41; -&gt; std::fmt::Result &#123;
+        f.debug_struct&#40;&quot;Point&quot;&#41;
+            .field&#40;&quot;x&quot;, &amp;self.x&#41;
+            .field&#40;&quot;y&quot;, &amp;self.y&#41;
+            .finish&#40;&#41;
+    &#125;
+&#125;</code></pre>
+<p><strong>With derive &#40;automatic&#41;:</strong></p>
+<pre><code class="language-rust">#&#91;derive&#40;Debug&#41;&#93;
+struct Point &#123; x: i32, y: i32 &#125;</code></pre>
+<p>Same result, much less code&#33;</p>
+<hr />
+<h2 id="when_not_to_derive_debug"><a href="#when_not_to_derive_debug" class="header-anchor">When NOT to Derive Debug</a></h2>
+<p>Sometimes you want <strong>custom</strong> debug output:</p>
+<pre><code class="language-rust">struct Password&#40;String&#41;;
+
+// Don&#39;t derive Debug - it would expose the password&#33;
+impl std::fmt::Debug for Password &#123;
+    fn fmt&#40;&amp;self, f: &amp;mut std::fmt::Formatter&lt;&#39;_&gt;&#41; -&gt; std::fmt::Result &#123;
+        write&#33;&#40;f, &quot;Password&#40;&#91;REDACTED&#93;&#41;&quot;&#41;
+    &#125;
+&#125;
+
+let pw &#61; Password&#40;&quot;secret123&quot;.to_string&#40;&#41;&#41;;
+println&#33;&#40;&quot;&#123;:?&#125;&quot;, pw&#41;;  // Password&#40;&#91;REDACTED&#93;&#41;</code></pre>
+<p>Or when debugging large structs, you might want abbreviated output:</p>
+<pre><code class="language-rust">struct LargeDataset &#123;
+    data: Vec&lt;f64&gt;,  // Could be millions of elements
+    name: String,
+&#125;
+
+impl std::fmt::Debug for LargeDataset &#123;
+    fn fmt&#40;&amp;self, f: &amp;mut std::fmt::Formatter&lt;&#39;_&gt;&#41; -&gt; std::fmt::Result &#123;
+        write&#33;&#40;f, &quot;LargeDataset &#123;&#123; name: &#123;:?&#125;, size: &#123;&#125; &#125;&#125;&quot;, 
+               self.name, self.data.len&#40;&#41;&#41;
+    &#125;
+&#125;</code></pre>
+<hr />
+<h2 id="derivable_traits"><a href="#derivable_traits" class="header-anchor">Derivable Traits</a></h2>
+<p>Not all traits can be derived. Here are the standard library traits that support <code>derive</code>:</p>
+<h3 id="commonly_used"><a href="#commonly_used" class="header-anchor">Commonly Used</a></h3>
+<ul>
+<li><p><code>Debug</code> - Debug formatting</p>
+</li>
+<li><p><code>Clone</code> - Explicit duplication</p>
+</li>
+<li><p><code>Copy</code> - Implicit duplication &#40;for simple types&#41;</p>
+</li>
+<li><p><code>PartialEq</code> - Equality comparison</p>
+</li>
+<li><p><code>Eq</code> - Full equality &#40;requires <code>PartialEq</code>&#41;</p>
+</li>
+<li><p><code>PartialOrd</code> - Partial ordering</p>
+</li>
+<li><p><code>Ord</code> - Total ordering &#40;requires <code>PartialOrd</code>, <code>Eq</code>&#41;</p>
+</li>
+<li><p><code>Hash</code> - Hashing support</p>
+</li>
+<li><p><code>Default</code> - Default value construction</p>
+</li>
+</ul>
+<h3 id="less_common"><a href="#less_common" class="header-anchor">Less Common</a></h3>
+<ul>
+<li><p><code>From</code> - Type conversion &#40;with <code>#&#91;derive&#40;From&#41;&#93;</code> from external crates&#41;</p>
+</li>
+<li><p>Many more with external crates like <code>serde</code>&#39;s <code>Serialize</code>/<code>Deserialize</code></p>
+</li>
+</ul>
+<hr />
+<h2 id="key_takeaways"><a href="#key_takeaways" class="header-anchor">Key Takeaways</a></h2>
+<ol>
+<li><p><strong><code>#&#91;derive&#40;Debug&#41;&#93;</code> is essential</strong> - Almost every struct/enum should have it</p>
+</li>
+<li><p><strong><code>Debug</code> is for developers</strong> - Use <code>Display</code> for user-facing output</p>
+</li>
+<li><p><strong><code>derive</code> saves time</strong> - Auto-generates trait implementations</p>
+</li>
+<li><p><strong>Start with <code>Debug</code></strong> - Add more derives as needed</p>
+</li>
+<li><p><strong>Custom implementations</strong> - Override when you need special behavior &#40;like hiding sensitive data&#41;</p>
+</li>
+</ol>
+<p><strong>Rule of thumb:</strong> When in doubt, add <code>Debug</code>. You can always customize it later if needed.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: January 30, 2026.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>
