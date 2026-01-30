@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Node.js and Solidity: The Connection</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="nodejs_and_solidity_the_connection"><a href="#nodejs_and_solidity_the_connection" class="header-anchor">Node.js and Solidity: The Connection</a></h1>
+<h2 id="whats_nodejs"><a href="#whats_nodejs" class="header-anchor">What&#39;s Node.js?</a></h2>
+<p><strong>Node.js</strong> is a JavaScript runtime that lets you run JavaScript code outside of web browsers—on servers, your computer, anywhere really.</p>
+<blockquote>
+<p><strong>What&#39;s an environment?</strong></p>
+<p>An environment is the complete &quot;world&quot; where your code lives and runs. It includes:</p>
+<ul>
+<li><p>The runtime &#40;the thing that executes your code&#41;</p>
+</li>
+<li><p>Tools and libraries available to your code</p>
+</li>
+<li><p>Settings and configurations</p>
+</li>
+</ul>
+<p><strong>Real-world analogy:</strong> If your code is a chef cooking a meal, the environment is the entire kitchen—it&#39;s not just the stove &#40;runtime&#41;, but also the utensils, ingredients on hand, and the layout of everything.</p>
+<p><strong>Example:</strong> The &quot;browser environment&quot; gives your JavaScript access to things like <code>document.getElementById&#40;&#41;</code> to manipulate web pages. The &quot;Node.js environment&quot; gives you access to <code>fs.readFile&#40;&#41;</code> to read files from your computer. Same language &#40;JavaScript&#41;, different environments, different superpowers.</p>
+<p><strong>Are these just prepackaged code?</strong> Partially, but not entirely:</p>
+<ul>
+<li><p><strong>Standard library APIs</strong> &#40;like <code>fs.readFile&#40;&#41;</code>&#41; are indeed pre-written code bundled with the environment</p>
+</li>
+<li><p><strong>Host APIs</strong> &#40;like <code>document</code>, <code>window</code> in browsers&#41; are implemented in the host application itself &#40;written in C&#43;&#43;, not JavaScript&#41;</p>
+</li>
+<li><p><strong>System bindings</strong> connect your JavaScript to lower-level OS capabilities &#40;file I/O, networking, etc.&#41;</p>
+</li>
+</ul>
+<p>So it&#39;s a mix: some are JavaScript libraries, some are native code bindings that expose system functionality to your JavaScript code.</p>
+</blockquote>
+<blockquote>
+<p><strong>What&#39;s a JavaScript runtime?</strong></p>
+<p>A runtime is the execution engine that interprets and runs your code. More technically:</p>
+<ul>
+<li><p>It <strong>parses</strong> your JavaScript source code into an abstract syntax tree &#40;AST&#41;</p>
+</li>
+<li><p><strong>Compiles</strong> it to bytecode or machine code &#40;often using JIT compilation&#41;</p>
+</li>
+<li><p><strong>Executes</strong> the compiled code</p>
+</li>
+<li><p>Manages <strong>memory</strong> &#40;heap allocation, garbage collection&#41;</p>
+</li>
+<li><p>Handles the <strong>call stack</strong> and <strong>event loop</strong> for asynchronous operations</p>
+</li>
+</ul>
+<p><strong>The browser analogy:</strong> Browsers embed JavaScript engines &#40;like V8 in Chrome, SpiderMonkey in Firefox&#41; that provide the runtime. These engines execute your code and expose Web APIs for DOM manipulation.</p>
+<p><strong>Node.js uses the same V8 engine</strong> but provides a different set of APIs—instead of <code>window</code> and <code>document</code>, you get <code>fs</code>, <code>http</code>, and <code>process</code> for system-level operations.</p>
+<p>The key difference: same language, same execution model, but different <strong>standard libraries</strong> and <strong>host APIs</strong> depending on the runtime environment. </p>
+</blockquote>
+<p>Think of it this way: JavaScript was originally trapped in browsers, only able to make websites interactive. Node.js freed it to do backend stuff like file operations, server logic, and yes—blockchain development.</p>
+<blockquote>
+<p><strong>So Node.js bridges JavaScript to backend dev?</strong> Exactly&#33; Before Node.js &#40;released in 2009&#41;, you <em>had</em> to use different languages for frontend and backend:</p>
+<ul>
+<li><p><strong>Frontend:</strong> JavaScript &#40;only option for browsers&#41;</p>
+</li>
+<li><p><strong>Backend:</strong> PHP, Python, Ruby, Java, C#, etc.</p>
+</li>
+</ul>
+<p>Node.js changed the game by letting you use JavaScript for <em>both</em> sides. This means:</p>
+<ul>
+<li><p><strong>One language</strong> across your entire stack &#40;hence &quot;full-stack JavaScript&quot;&#41;</p>
+</li>
+<li><p><strong>Code sharing</strong> between frontend and backend &#40;same validation logic, data models, etc.&#41;</p>
+</li>
+<li><p><strong>Same developers</strong> can work on both ends without context switching</p>
+</li>
+</ul>
+<p><strong>Does this replace PHP/Python?</strong> Not replace—it&#39;s just another option. PHP is still huge &#40;WordPress, Laravel&#41;, Python dominates in AI/ML, but Node.js carved out its own space, especially for real-time apps &#40;chat, streaming&#41; and APIs.</p>
+<p>The blockchain world heavily adopted Node.js because the tooling ecosystem built up around it early, and it&#39;s great for the asynchronous operations that blockchain development involves.</p>
+<p><strong>Is speed ever a concern?</strong> Yes and no:</p>
+<ul>
+<li><p><strong>Node.js is fast</strong> for I/O-bound operations &#40;network requests, file operations, database queries&#41; because of its non-blocking, event-driven architecture</p>
+</li>
+<li><p><strong>Node.js is slower</strong> for CPU-intensive tasks &#40;video encoding, complex calculations, image processing&#41; because it&#39;s single-threaded by default</p>
+</li>
+</ul>
+<p><strong>Performance comparison:</strong></p>
+<ul>
+<li><p>Beats PHP in most benchmarks</p>
+</li>
+<li><p>Comparable to Python for I/O operations</p>
+</li>
+<li><p>Slower than compiled languages &#40;Go, Rust, C&#43;&#43;&#41; for raw computation</p>
+</li>
+</ul>
+<p><strong>For blockchain development specifically,</strong> speed isn&#39;t usually the bottleneck—you&#39;re mostly waiting on network calls to blockchain nodes, compiling contracts, or running tests. The actual JavaScript execution is fast enough. If you needed extreme performance for on-chain computation, you&#39;d optimize the Solidity contract itself, not the Node.js tooling around it.</p>
+</blockquote>
+<h3 id="key_features"><a href="#key_features" class="header-anchor">Key Features:</a></h3>
+<ul>
+<li><p><strong>Asynchronous &amp; event-driven</strong>: Perfect for handling multiple operations at once</p>
+</li>
+<li><p><strong>npm</strong>: Massive package ecosystem &#40;like an app store for code libraries&#41;</p>
+</li>
+<li><p><strong>JavaScript everywhere</strong>: Use the same language for frontend and backend</p>
+</li>
+</ul>
+<hr />
+<h2 id="how_nodejs_relates_to_solidity"><a href="#how_nodejs_relates_to_solidity" class="header-anchor">How Node.js Relates to Solidity</a></h2>
+<p>Here&#39;s the thing: <strong>Solidity and Node.js don&#39;t directly interact</strong>, but Node.js is basically the <em>workshop</em> where you build, test, and deploy Solidity smart contracts.</p>
+<h3 id="the_relationship"><a href="#the_relationship" class="header-anchor">The Relationship:</a></h3>
+<pre><code class="language-julia">┌─────────────────────────────────────────┐
+│         Your Development Machine         │
+│                                         │
+│  ┌──────────────────────────────────┐  │
+│  │         Node.js Runtime          │  │
+│  │                                  │  │
+│  │  ┌────────────────────────────┐ │  │
+│  │  │  Development Tools:        │ │  │
+│  │  │  • Hardhat                 │ │  │
+│  │  │  • Truffle                 │ │  │
+│  │  │  • Web3.js / Ethers.js     │ │  │
+│  │  └────────────────────────────┘ │  │
+│  └──────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+                  │
+                  │ compile, test, deploy
+                  ↓
+┌─────────────────────────────────────────┐
+│         Ethereum Blockchain             │
+│                                         │
+│     Your Solidity Smart Contract       │
+│     &#40;runs as bytecode on EVM&#41;          │
+└─────────────────────────────────────────┘</code></pre>
+<h3 id="what_nodejs_does_for_solidity"><a href="#what_nodejs_does_for_solidity" class="header-anchor">What Node.js Does for Solidity:</a></h3>
+<ol>
+<li><p><strong>Compiles Solidity code</strong> → Bytecode that runs on the Ethereum Virtual Machine &#40;EVM&#41;</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>Where is the EVM hosted? Do we install it?</strong></p>
+<p>The EVM actually <em>is</em> on the blockchain—but not in the way you might think.</p>
+<p><strong>Here&#39;s how it works:</strong></p>
+<ul>
+<li><p>Every <strong>Ethereum node</strong> &#40;a computer running Ethereum software&#41; has an EVM built into it</p>
+</li>
+<li><p>When you run a node &#40;using software like Geth or Nethermind&#41;, the EVM comes bundled with it</p>
+</li>
+<li><p>The blockchain itself stores your smart contract&#39;s <strong>bytecode</strong> &#40;the compiled instructions&#41;</p>
+</li>
+<li><p>When someone calls your contract, nodes execute that bytecode through their local EVM</p>
+</li>
+</ul>
+<p><strong>Think of it like this:</strong></p>
+<ul>
+<li><p>The blockchain &#61; a shared database that stores contract code &#43; data</p>
+</li>
+<li><p>The EVM &#61; the processor in each node that can execute that code</p>
+</li>
+<li><p>Every node runs the same code and gets the same result &#40;that&#39;s how consensus works&#41;</p>
+</li>
+</ul>
+<p><strong>For development:</strong> You don&#39;t install the real EVM. Tools like Hardhat include a <strong>simulated EVM</strong> that runs locally on your computer for testing. It behaves like the real thing but without connecting to the actual blockchain.</p>
+<p>So yes, technically the EVM is &quot;on the blockchain&quot;—or more accurately, it&#39;s running on thousands of computers worldwide that form the blockchain network, all executing your contract code in sync.</p>
+</blockquote>
+<ol start="2">
+<li><p><strong>Runs local blockchain</strong> for testing &#40;via tools like Hardhat&#41;</p>
+</li>
+<li><p><strong>Deploys contracts</strong> to testnets or mainnet</p>
+</li>
+<li><p><strong>Interacts with contracts</strong> using libraries like Web3.js or Ethers.js</p>
+</li>
+<li><p><strong>Runs automated tests</strong> to ensure your contract logic works</p>
+</li>
+</ol>
+<hr />
+<h2 id="real-world_example"><a href="#real-world_example" class="header-anchor">Real-World Example</a></h2>
+<p>Say you write this Solidity contract:</p>
+<pre><code class="language-solidity">// SimpleStorage.sol
+pragma solidity ^0.8.0;
+
+contract SimpleStorage &#123;
+    uint256 private value;
+    
+    function setValue&#40;uint256 _value&#41; public &#123;
+        value &#61; _value;
+    &#125;
+    
+    function getValue&#40;&#41; public view returns &#40;uint256&#41; &#123;
+        return value;
+    &#125;
+&#125;</code></pre>
+<blockquote>
+<p><strong>What&#39;s <code>pragma</code>?</strong></p>
+<p><code>pragma</code> is a compiler directive that tells the Solidity compiler which version&#40;s&#41; of the language your code is compatible with.</p>
+<p><strong>Breaking it down:</strong></p>
+<ul>
+<li><p><code>pragma solidity ^0.8.0;</code> means &quot;this code works with Solidity version 0.8.0 and any newer minor version &#40;0.8.1, 0.8.20, etc.&#41;, but NOT 0.9.0&#43;&quot;</p>
+</li>
+<li><p>The <code>^</code> symbol is the caret operator—it locks the major version but allows minor/patch updates</p>
+</li>
+</ul>
+<p><strong>Why does this matter?</strong> Solidity evolves quickly, and new versions can introduce breaking changes. By specifying a version range:</p>
+<ul>
+<li><p>You ensure your code compiles correctly</p>
+</li>
+<li><p>You prevent future compiler versions from breaking your contract</p>
+</li>
+<li><p>You communicate to other developers what version was used</p>
+</li>
+</ul>
+<p><strong>Other examples:</strong></p>
+<ul>
+<li><p><code>pragma solidity 0.8.0;</code> → exactly version 0.8.0 only</p>
+</li>
+<li><p><code>pragma solidity &gt;&#61;0.8.0 &lt;0.9.0;</code> → anything from 0.8.0 up to &#40;but not including&#41; 0.9.0</p>
+</li>
+</ul>
+<p>It&#39;s similar to specifying dependency versions in <code>package.json</code> for Node.js—you&#39;re just being explicit about compatibility.</p>
+</blockquote>
+<p>You&#39;d use Node.js to:</p>
+<pre><code class="language-javascript">// deploy.js &#40;running in Node.js&#41;
+const &#123; ethers &#125; &#61; require&#40;&quot;hardhat&quot;&#41;;
+
+async function main&#40;&#41; &#123;
+    // Compile the Solidity code
+    const SimpleStorage &#61; await ethers.getContractFactory&#40;&quot;SimpleStorage&quot;&#41;;
+    
+    // Deploy to blockchain
+    const contract &#61; await SimpleStorage.deploy&#40;&#41;;
+    await contract.deployed&#40;&#41;;
+    
+    // Interact with it
+    await contract.setValue&#40;42&#41;;
+    const value &#61; await contract.getValue&#40;&#41;;
+    console.log&#40;&quot;Stored value:&quot;, value.toString&#40;&#41;&#41;; // 42
+&#125;
+
+main&#40;&#41;;</code></pre>
+<hr />
+<h2 id="the_bottom_line"><a href="#the_bottom_line" class="header-anchor">The Bottom Line</a></h2>
+<p><strong>Node.js</strong> &#61; The development environment &#40;JavaScript runtime&#41;   <strong>Solidity</strong> &#61; The smart contract language &#40;what runs on blockchain&#41;</p>
+<p>Node.js is to Solidity what a carpenter&#39;s workshop is to a house blueprint—you need the workshop &#40;Node.js &#43; tools&#41; to actually build and deploy the house &#40;Solidity contract&#41; to its final location &#40;blockchain&#41;.</p>
+<p>You could technically use other environments, but Node.js has become the standard because of its rich ecosystem of blockchain development tools.</p>
+<hr />
+<h2 id="what_is_hardhat"><a href="#what_is_hardhat" class="header-anchor">What is Hardhat?</a></h2>
+<blockquote>
+<p><strong>Hardhat</strong> is like the ultimate workshop toolkit for Ethereum developers—it runs on Node.js and gives you everything you need to build smart contracts in one place.</p>
+<p>Think of it as your development &quot;command center&quot; that includes:</p>
+<ul>
+<li><p><strong>A local blockchain</strong> that runs on your computer &#40;so you can test without spending real money&#41;</p>
+</li>
+<li><p><strong>A compiler</strong> that turns your Solidity code into bytecode</p>
+</li>
+<li><p><strong>A testing framework</strong> to make sure your contracts work correctly</p>
+</li>
+<li><p><strong>Deployment scripts</strong> to push your contracts to real blockchains</p>
+</li>
+<li><p><strong>Debugging tools</strong> to figure out what went wrong</p>
+</li>
+</ul>
+<p>Instead of piecing together 5 different tools, Hardhat bundles them all together with a smooth developer experience.</p>
+<p><strong>Quick example:</strong> When you run <code>npx hardhat test</code>, Hardhat spins up a fake blockchain in milliseconds, deploys your contract, runs all your tests, and tears it down—all automatically. It&#39;s like having a scratch pad where you can experiment freely before going live.</p>
+<p>Other popular alternatives include <strong>Truffle</strong> and <strong>Foundry</strong>, but Hardhat has become a favorite because it&#39;s flexible, well-documented, and has a plugin ecosystem that lets you extend it however you need.</p>
+</blockquote>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 27, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

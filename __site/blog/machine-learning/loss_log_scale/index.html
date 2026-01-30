@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/github.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Loss Functions for Log-Scale Regression</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747">computer science</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="loss_functions_for_log-scale_regression"><a href="#loss_functions_for_log-scale_regression" class="header-anchor">Loss Functions for Log-Scale Regression</a></h1>
+<p>When dealing with data that spans multiple orders of magnitude, choosing the right loss function is crucial. Let&#39;s break down your options and when to use each.</p>
+<h2 id="the_standard_approach_transform_then_mse"><a href="#the_standard_approach_transform_then_mse" class="header-anchor">The Standard Approach: Transform Then MSE</a></h2>
+<p><strong>What most people do:</strong></p>
+<pre><code class="language-julia">y_log &#61; log.&#40;y&#41;
+# Fit your model to y_log
+log_pred &#61; predict&#40;model, X&#41;
+y_pred &#61; exp.&#40;log_pred&#41;  # Transform back</code></pre>
+<p><strong>What you&#39;re actually optimizing:</strong></p>
+\[L = \mathbb{E}[(\log(\hat{y}) - \log(y))^2] = \text{MSLE (Mean Squared Log Error)}\]
+<h3 id="pros"><a href="#pros" class="header-anchor">Pros:</a></h3>
+<p>✅ Simple - just transform targets before training ✅ <strong>Multiplicative errors</strong> - treats relative errors equally across scales &#40;explained below&#41; ✅ Works with any model &#40;linear regression, neural nets, trees, etc.&#41; ✅ Automatically handles heteroscedasticity</p>
+<h2 id="understanding_multiplicative_vs_additive_errors"><a href="#understanding_multiplicative_vs_additive_errors" class="header-anchor">Understanding Multiplicative vs Additive Errors</a></h2>
+<p>This is crucial to understanding why log transforms work the way they do&#33;</p>
+<h3 id="additive_absolute_errors"><a href="#additive_absolute_errors" class="header-anchor">Additive &#40;Absolute&#41; Errors</a></h3>
+<p><strong>Plain MSE</strong> optimizes additive errors: \(L = (\hat{y} - y)^2\)</p>
+<p>This cares about the <strong>absolute difference</strong>:</p>
+<table><tr><th align="right">True Value</th><th align="right">Prediction</th><th align="right">Absolute Error</th><th align="right">Loss</th></tr><tr><td align="right">10</td><td align="right">11</td><td align="right">1</td><td align="right">1</td></tr><tr><td align="right">10</td><td align="right">15</td><td align="right">5</td><td align="right">25</td></tr><tr><td align="right">1000</td><td align="right">1001</td><td align="right">1</td><td align="right">1</td></tr><tr><td align="right">1000</td><td align="right">1005</td><td align="right">5</td><td align="right">25</td></tr></table>
+<p>Notice: Being off by 5 has the same loss &#40;25&#41; whether you&#39;re at scale 10 or scale 1000.</p>
+<p><strong>Problem:</strong> Being off by 5 when predicting 10 is a <strong>50&#37; error</strong> &#40;terrible&#33;&#41;, but being off by 5 when predicting 1000 is only a <strong>0.5&#37; error</strong> &#40;great&#33;&#41;. Plain MSE treats them the same&#33;</p>
+<h3 id="multiplicative_relative_errors"><a href="#multiplicative_relative_errors" class="header-anchor">Multiplicative &#40;Relative&#41; Errors  </a></h3>
+<p><strong>Log transform</strong> optimizes multiplicative errors. Here&#39;s why:</p>
+\(L = (\log(\hat{y}) - \log(y))^2\)
+<p>Using the logarithm property: \(\log(a) - \log(b) = \log(a/b)\)</p>
+\(L = \left[\log\left(\frac{\hat{y}}{y}\right)\right]^2\)
+<p>This is a <strong>ratio</strong>&#33; The loss depends on \(\frac{\hat{y}}{y}\), not \(\hat{y} - y\).</p>
+<p><strong>Examples:</strong></p>
+<table><tr><th align="right">True Value</th><th align="right">Prediction</th><th align="right">Ratio \(\frac{\hat{y}}{y}\)</th><th align="right">Log Error</th><th align="right">Loss</th></tr><tr><td align="right">10</td><td align="right">11</td><td align="right">1.1</td><td align="right">log&#40;1.1&#41; ≈ 0.095</td><td align="right">0.0091</td></tr><tr><td align="right">10</td><td align="right">15</td><td align="right">1.5</td><td align="right">log&#40;1.5&#41; ≈ 0.405</td><td align="right">0.164</td></tr><tr><td align="right">1000</td><td align="right">1100</td><td align="right">1.1</td><td align="right">log&#40;1.1&#41; ≈ 0.095</td><td align="right">0.0091</td></tr><tr><td align="right">1000</td><td align="right">1500</td><td align="right">1.5</td><td align="right">log&#40;1.5&#41; ≈ 0.405</td><td align="right">0.164</td></tr></table>
+<p><strong>Key insight:</strong> Being off by a <strong>factor of 1.1</strong> &#40;10&#37; too high&#41; has the same loss whether you&#39;re at scale 10 or scale 1000&#33;</p>
+<h3 id="why_multiplicative"><a href="#why_multiplicative" class="header-anchor">Why &quot;Multiplicative&quot;?</a></h3>
+<p>Because the model learns to predict <strong>ratios/multipliers</strong> rather than differences:</p>
+<p><strong>Additive thinking:</strong> </p>
+<ul>
+<li><p>&quot;I need to add 500 to my base prediction&quot;</p>
+</li>
+<li><p>Absolute differences matter</p>
+</li>
+</ul>
+<p><strong>Multiplicative thinking:</strong></p>
+<ul>
+<li><p>&quot;I need to multiply my base prediction by 1.5&quot;  </p>
+</li>
+<li><p>Relative ratios matter</p>
+</li>
+</ul>
+<h3 id="concrete_example_house_prices"><a href="#concrete_example_house_prices" class="header-anchor">Concrete Example: House Prices</a></h3>
+<p>Imagine predicting house prices in two neighborhoods:</p>
+<p><strong>Neighborhood A:</strong> Houses around &#36;100,000 <strong>Neighborhood B:</strong> Houses around &#36;1,000,000</p>
+<p><strong>Scenario 1: Additive errors &#40;plain MSE&#41;</strong></p>
+<p>Your model makes these predictions:</p>
+<ul>
+<li><p>House A: True&#61;&#36;100k, Pred&#61;&#36;110k, Error&#61;&#36;10k, Loss&#61;100M</p>
+</li>
+<li><p>House B: True&#61;&#36;1M, Pred&#61;&#36;1.01M, Error&#61;&#36;10k, Loss&#61;100M</p>
+</li>
+</ul>
+<p>Same loss&#33; But House A is <strong>10&#37; off</strong> &#40;bad&#33;&#41; while House B is <strong>1&#37; off</strong> &#40;great&#33;&#41;.</p>
+<p>The model treats these equally, so it might sacrifice accuracy on cheap houses to get expensive houses within &#36;10k.</p>
+<p><strong>Scenario 2: Multiplicative errors &#40;log transform&#41;</strong></p>
+<p>Same predictions:</p>
+<ul>
+<li><p>House A: True&#61;&#36;100k, Pred&#61;&#36;110k, Ratio&#61;1.1, Log error&#61;0.095, Loss&#61;0.009</p>
+</li>
+<li><p>House B: True&#61;&#36;1M, Pred&#61;&#36;1.01M, Ratio&#61;1.01, Log error&#61;0.01, Loss&#61;0.0001</p>
+</li>
+</ul>
+<p>Now House A has <strong>90x more loss</strong> because the percentage error is much worse&#33;</p>
+<p>The model learns: &quot;Being 10&#37; off is equally bad whether the house costs &#36;100k or &#36;1M.&quot;</p>
+<h3 id="mathematical_relationship"><a href="#mathematical_relationship" class="header-anchor">Mathematical Relationship</a></h3>
+<p>For small errors, we can approximate:</p>
+\(\log\left(\frac{\hat{y}}{y}\right) \approx \frac{\hat{y} - y}{y}\)
+<p>So log error ≈ <strong>percentage error</strong>&#33;</p>
+<p>That&#39;s why:</p>
+<ul>
+<li><p>MSLE ≈ Mean Squared Percentage Error &#40;for small errors&#41;</p>
+</li>
+<li><p>The model optimizes relative accuracy, not absolute accuracy</p>
+</li>
+</ul>
+<h3 id="when_to_use_each"><a href="#when_to_use_each" class="header-anchor">When to Use Each</a></h3>
+<table><tr><th align="right">Domain</th><th align="right">Example</th><th align="right">Type</th><th align="right">Reasoning</th></tr><tr><td align="right"><strong>Economics &amp; Finance</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Stock prices</td><td align="right">&#36;50 vs &#36;5000/share</td><td align="right"><strong>Multiplicative</strong></td><td align="right">10&#37; gain/loss matters equally; doubling is doubling</td></tr><tr><td align="right">Revenue/Sales</td><td align="right">&#36;1M vs &#36;100M</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Growth rates &#40;&#37;&#41; are what matter, not absolute &#36;</td></tr><tr><td align="right">Salary</td><td align="right">&#36;50k vs &#36;500k</td><td align="right"><strong>Multiplicative</strong></td><td align="right">20&#37; raise has similar impact at any level</td></tr><tr><td align="right">GDP</td><td align="right">&#36;1T vs &#36;20T economy</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Growth measured in &#37;, not absolute billions</td></tr><tr><td align="right">Market cap</td><td align="right">&#36;1B vs &#36;1T company</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Valuation multiples, not absolute differences</td></tr><tr><td align="right">Interest/Returns</td><td align="right">5&#37; vs 10&#37; return</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Compounding makes ratios matter</td></tr><tr><td align="right">Exchange rates</td><td align="right">1 USD &#61; 100 JPY</td><td align="right"><strong>Multiplicative</strong></td><td align="right">10&#37; currency move significant at any scale</td></tr><tr><td align="right">Wealth/Assets</td><td align="right">&#36;100k vs &#36;10M</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Lifestyle changes by orders of magnitude</td></tr><tr><td align="right"><strong>Demographics</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Population</td><td align="right">1000 vs 1M people</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Growth rates &#40;&#37;&#41;, doubling time</td></tr><tr><td align="right">Population density</td><td align="right">10 vs 10,000 per km²</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Urban vs rural by orders of magnitude</td></tr><tr><td align="right">Life expectancy</td><td align="right">45 vs 85 years</td><td align="right"><strong>Additive</strong></td><td align="right">Each year of life equally valuable</td></tr><tr><td align="right">Age</td><td align="right">5 vs 50 years old</td><td align="right"><strong>Additive</strong></td><td align="right">1 year is 1 year regardless</td></tr><tr><td align="right"><strong>Science &amp; Nature</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Earthquake magnitude</td><td align="right">5.0 vs 8.0 Richter</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Logarithmic scale, each &#43;1 is 10x energy</td></tr><tr><td align="right">pH levels</td><td align="right">3 vs 7 &#40;acidity&#41;</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Log scale, each unit is 10x H⁺ concentration</td></tr><tr><td align="right">Decibels &#40;sound&#41;</td><td align="right">60 vs 90 dB</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Log scale, each &#43;10 is 10x intensity</td></tr><tr><td align="right">Star brightness</td><td align="right">Magnitude 1 vs 6</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Log scale, each magnitude is 2.5x</td></tr><tr><td align="right">Species count</td><td align="right">10 vs 10,000 species</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Biodiversity measured in orders of magnitude</td></tr><tr><td align="right">Viral load</td><td align="right">1000 vs 1M copies/mL</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Exponential growth, log-fold changes</td></tr><tr><td align="right">Gene expression</td><td align="right">10x vs 1000x baseline</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Fold-changes &#40;2x, 10x&#41; standard in biology</td></tr><tr><td align="right">Bacterial growth</td><td align="right">1k vs 1M CFU</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Exponential growth dynamics</td></tr><tr><td align="right"><strong>Web &amp; Tech</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Website traffic</td><td align="right">100 vs 100k visits/day</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Growth measured in &#37;, orders of magnitude matter</td></tr><tr><td align="right">User base</td><td align="right">1k vs 1B users</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Network effects scale multiplicatively</td></tr><tr><td align="right">Data storage</td><td align="right">1GB vs 1PB</td><td align="right"><strong>Multiplicative</strong></td><td align="right">KB→MB→GB→TB progression</td></tr><tr><td align="right">Response time</td><td align="right">10ms vs 1000ms</td><td align="right"><strong>Multiplicative</strong></td><td align="right">2x slower feels similar at any scale</td></tr><tr><td align="right">API rate limits</td><td align="right">100 vs 10k req/sec</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Order of magnitude determines capacity tier</td></tr><tr><td align="right">Follower count</td><td align="right">100 vs 100k followers</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Influence grows non-linearly</td></tr><tr><td align="right"><strong>Business Metrics</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Customer count</td><td align="right">10 vs 10,000</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Scaling challenges at each order of magnitude</td></tr><tr><td align="right">Conversion rate</td><td align="right">1&#37; vs 10&#37;</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Doubling conversion &#61; doubling revenue</td></tr><tr><td align="right">Customer lifetime value</td><td align="right">&#36;100 vs &#36;10k</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Different customer segments by magnitude</td></tr><tr><td align="right">Churn rate</td><td align="right">1&#37; vs 10&#37; monthly</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Compound effects over time</td></tr><tr><td align="right"><strong>Measurements - Additive</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Temperature &#40;Celsius&#41;</td><td align="right">10°C vs 30°C</td><td align="right"><strong>Additive</strong></td><td align="right">5° difference feels similar anywhere &#40;within range&#41;</td></tr><tr><td align="right">Distance</td><td align="right">10m vs 1000m</td><td align="right"><strong>Additive</strong></td><td align="right">1m is 1m, though sometimes multiplicative for navigation</td></tr><tr><td align="right">Height/Length</td><td align="right">150cm vs 200cm</td><td align="right"><strong>Additive</strong></td><td align="right">1cm is 1cm regardless of total height</td></tr><tr><td align="right">Weight &#40;small range&#41;</td><td align="right">50kg vs 80kg</td><td align="right"><strong>Additive</strong></td><td align="right">1kg is 1kg in normal ranges</td></tr><tr><td align="right">Time duration</td><td align="right">10 sec vs 60 sec</td><td align="right"><strong>Additive</strong></td><td align="right">Each second equally valuable</td></tr><tr><td align="right">Angles/Degrees</td><td align="right">10° vs 90°</td><td align="right"><strong>Additive</strong></td><td align="right">Each degree is same angular unit</td></tr><tr><td align="right">Percentage points</td><td align="right">10&#37; vs 30&#37;</td><td align="right"><strong>Additive</strong></td><td align="right">&#43;5 percentage points is &#43;5 points</td></tr><tr><td align="right">Test scores</td><td align="right">70 vs 90 out of 100</td><td align="right"><strong>Additive</strong></td><td align="right">Each point equally valuable</td></tr><tr><td align="right"><strong>Sports &amp; Games</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Points scored</td><td align="right">10 vs 100 points</td><td align="right"><strong>Additive</strong></td><td align="right">Each point counts the same</td></tr><tr><td align="right">Game score</td><td align="right">3-2 vs 103-102</td><td align="right"><strong>Additive</strong></td><td align="right">Win by 1 is win by 1</td></tr><tr><td align="right">Marathon time</td><td align="right">2:30 vs 4:00 hours</td><td align="right"><strong>Additive</strong></td><td align="right">Each minute is same effort &#40;roughly&#41;</td></tr><tr><td align="right">Golf score</td><td align="right">72 vs 85 strokes</td><td align="right"><strong>Additive</strong></td><td align="right">Each stroke matters equally</td></tr><tr><td align="right"><strong>Medicine &amp; Health</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Tumor size</td><td align="right">1cm vs 10cm</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Doubling time, growth dynamics</td></tr><tr><td align="right">Blood cell count</td><td align="right">1k vs 10k per μL</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Orders of magnitude indicate different conditions</td></tr><tr><td align="right">Drug dosage</td><td align="right">10mg vs 100mg</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Half-life, therapeutic windows scale</td></tr><tr><td align="right">Heart rate</td><td align="right">60 vs 120 bpm</td><td align="right"><strong>Additive</strong></td><td align="right">Each beat per minute similar impact</td></tr><tr><td align="right">Blood pressure</td><td align="right">120/80 vs 160/100</td><td align="right"><strong>Additive</strong></td><td align="right">Each mmHg similar risk increment</td></tr><tr><td align="right">Body temperature</td><td align="right">36°C vs 40°C</td><td align="right"><strong>Additive</strong></td><td align="right">Each degree equally concerning</td></tr><tr><td align="right">BMI</td><td align="right">20 vs 30</td><td align="right"><strong>Additive</strong></td><td align="right">Linear scale for health categories</td></tr><tr><td align="right"><strong>Real Estate &amp; Geography</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">House price</td><td align="right">&#36;100k vs &#36;1M</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Market dynamics by price tier</td></tr><tr><td align="right">Square footage</td><td align="right">500 vs 5000 sq ft</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Cost per sq ft changes with scale</td></tr><tr><td align="right">Land area</td><td align="right">0.1 vs 100 acres</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Use cases differ by orders of magnitude</td></tr><tr><td align="right">Altitude/Elevation</td><td align="right">100m vs 5000m</td><td align="right"><strong>Additive</strong></td><td align="right">Each meter is same vertical distance</td></tr><tr><td align="right">Latitude/Longitude</td><td align="right">10° vs 80°</td><td align="right"><strong>Additive</strong></td><td align="right">Each degree is same angular distance</td></tr><tr><td align="right"><strong>Energy &amp; Physics</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Energy/Power</td><td align="right">1W vs 1MW</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Orders of magnitude: device→building→city</td></tr><tr><td align="right">Frequency</td><td align="right">10Hz vs 10MHz</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Orders of magnitude matter &#40;radio spectrum&#41;</td></tr><tr><td align="right">Wavelength</td><td align="right">1nm vs 1m</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Different physical phenomena at each scale</td></tr><tr><td align="right">Particle count</td><td align="right">10⁶ vs 10²³ &#40;mole&#41;</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Chemistry deals with log scales</td></tr><tr><td align="right">Half-life</td><td align="right">1 sec vs 1000 years</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Decay rates span huge ranges</td></tr><tr><td align="right">Speed &#40;relative&#41;</td><td align="right">1 m/s vs 1000 m/s</td><td align="right"><strong>Additive</strong></td><td align="right">Each m/s is same increment &#40;non-relativistic&#41;</td></tr><tr><td align="right">Electric charge</td><td align="right">1μC vs 1C</td><td align="right"><strong>Additive</strong></td><td align="right">Linear superposition</td></tr><tr><td align="right"><strong>Computation</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Algorithm complexity</td><td align="right">O&#40;n&#41; vs O&#40;n²&#41;</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Growth rates by factors</td></tr><tr><td align="right">Memory usage</td><td align="right">1KB vs 1GB</td><td align="right"><strong>Multiplicative</strong></td><td align="right">KB→MB→GB→TB tiers</td></tr><tr><td align="right">CPU cycles</td><td align="right">1k vs 1B</td><td align="right"><strong>Multiplicative</strong></td><td align="right">Performance scales</td></tr><tr><td align="right">Pixels</td><td align="right">100px vs 1000px</td><td align="right"><strong>Additive</strong></td><td align="right">Each pixel is same unit</td></tr><tr><td align="right"><strong>Ambiguous Cases</strong></td><td align="right"></td><td align="right"></td><td align="right"></td></tr><tr><td align="right">Income inequality &#40;Gini&#41;</td><td align="right">0.3 vs 0.5</td><td align="right"><strong>Additive</strong></td><td align="right">Scale from 0-1, differences matter linearly</td></tr><tr><td align="right">Probability</td><td align="right">0.01 vs 0.5</td><td align="right"><strong>Both</strong></td><td align="right">Small probabilities multiplicative &#40;odds ratios&#41;, medium/high additive</td></tr><tr><td align="right">Speed &#40;wide range&#41;</td><td align="right">1 km/h vs 300,000 km/s</td><td align="right"><strong>Multiplicative</strong></td><td align="right">When spanning orders of magnitude</td></tr><tr><td align="right">Weight &#40;wide range&#41;</td><td align="right">1g vs 1000kg</td><td align="right"><strong>Multiplicative</strong></td><td align="right">When spanning orders of magnitude</td></tr></table>
+<h3 id="key_patterns_to_recognize"><a href="#key_patterns_to_recognize" class="header-anchor">Key Patterns to Recognize</a></h3>
+<p><strong>Use Multiplicative &#40;Log Transform&#41; when:</strong></p>
+<ul>
+<li><p>✅ Data spans <strong>multiple orders of magnitude</strong> &#40;10x, 100x, 1000x differences&#41;</p>
+</li>
+<li><p>✅ <strong>Growth rates/percentages</strong> are what matter &#40;10&#37; growth is 10&#37; growth&#41;</p>
+</li>
+<li><p>✅ Physical processes are <strong>exponential</strong> &#40;compound growth, decay&#41;</p>
+</li>
+<li><p>✅ Measurements use <strong>logarithmic scales</strong> &#40;Richter, decibels, pH&#41;</p>
+</li>
+<li><p>✅ <strong>Ratios/multiples</strong> are natural way to think &#40;2x bigger, 10x more users&#41;</p>
+</li>
+<li><p>✅ Phenomena have <strong>threshold effects</strong> at different scales &#40;1k vs 1M users &#61; different product&#41;</p>
+</li>
+</ul>
+<p><strong>Use Additive &#40;No Transform&#41; when:</strong></p>
+<ul>
+<li><p>✅ Data in <strong>narrow range</strong> or roughly same order of magnitude</p>
+</li>
+<li><p>✅ <strong>Absolute differences</strong> are what matter &#40;each unit equally important&#41;</p>
+</li>
+<li><p>✅ Scale is <strong>human-defined/arbitrary</strong> &#40;test scores, angles, points&#41;</p>
+</li>
+<li><p>✅ <strong>Physical measurements</strong> with consistent precision</p>
+</li>
+<li><p>✅ <strong>Linear relationships</strong> expected</p>
+</li>
+<li><p>✅ <strong>Zero is meaningful</strong> &#40;can&#39;t take log of zero&#41;</p>
+</li>
+</ul>
+<h3 id="real-world_tip"><a href="#real-world_tip" class="header-anchor">Real-World Tip</a></h3>
+<p>Ask yourself: <strong>&quot;If I double all the values, does the relationship change?&quot;</strong></p>
+<ul>
+<li><p>Stock portfolio: \(100k → \)200k feels like same &#37; gain &#61; <strong>Multiplicative</strong></p>
+</li>
+<li><p>Temperature: 10°C → 20°C is NOT double the heat &#61; <strong>Additive</strong> &#40;unless Kelvin&#33;&#41;</p>
+</li>
+<li><p>Website views: 1k → 2k visitors same as 100k → 200k &#61; <strong>Multiplicative</strong></p>
+</li>
+<li><p>Test score: 50 → 100 is NOT same as 25 → 50 points &#61; <strong>Additive</strong></p>
+</li>
+</ul>
+<h3 id="visual_intuition"><a href="#visual_intuition" class="header-anchor">Visual Intuition</a></h3>
+<p><strong>Additive errors:</strong> Think of a number line where each unit of distance is equally important</p>
+<pre><code class="language-julia">0----10----20----30----40----50
+     └─5─┘       └─5─┘
+   Same error, same loss</code></pre>
+<p><strong>Multiplicative errors:</strong> Think of a logarithmic scale where each doubling/halving is equally important</p>
+<pre><code class="language-julia">1----2----4----8----16----32
+     └×2┘      └×2┘
+   Same ratio, same loss</code></pre>
+<p>On a log scale:</p>
+<ul>
+<li><p>1 → 2 is the same &quot;distance&quot; as 10 → 20 or 100 → 200 &#40;all are 2x multipliers&#41;</p>
+</li>
+<li><p>Being off by 2x at any scale is equally bad</p>
+</li>
+</ul>
+<h3 id="back_to_your_original_observation"><a href="#back_to_your_original_observation" class="header-anchor">Back to Your Original Observation</a></h3>
+<p>You said: &quot;log transform makes the model more capable at predicting large values&quot;</p>
+<p>Now you can see why&#33; </p>
+<p><strong>Without log transform:</strong></p>
+<ul>
+<li><p>Error of 100 at y&#61;1000 → loss &#61; 10,000</p>
+</li>
+<li><p>Error of 10 at y&#61;100 → loss &#61; 100</p>
+</li>
+<li><p>Large value errors dominate, but the model might still underfit them to avoid huge losses</p>
+</li>
+</ul>
+<p><strong>With log transform:</strong></p>
+<ul>
+<li><p>Both are 10&#37; errors → same log error ≈ 0.095</p>
+</li>
+<li><p>Model learns to be 10&#37; accurate everywhere</p>
+</li>
+<li><p>When you transform back, you get good <strong>relative</strong> accuracy at all scales</p>
+</li>
+<li><p>Large values benefit because the model isn&#39;t scared of their magnitude</p>
+</li>
+</ul>
+<p>But &#40;as you noticed&#41; this also makes it hypersensitive near zero, because:</p>
+<ul>
+<li><p>Error from 0.01 to 0.02 &#61; 2x multiplier &#61; log&#40;2&#41; ≈ 0.69</p>
+</li>
+<li><p>Error from 100 to 200 &#61; 2x multiplier &#61; log&#40;2&#41; ≈ 0.69  </p>
+</li>
+<li><p>Same loss, but 0.01 → 0.02 is probably noise while 100 → 200 is important&#33;</p>
+</li>
+</ul>
+<p>That&#39;s the whole sensitivity problem we discussed earlier.</p>
+<h3 id="cons"><a href="#cons" class="header-anchor">Cons:</a></h3>
+<p>❌ <strong>Biased predictions</strong> when transformed back &#40;systematically underestimates&#41; ❌ Requires strictly positive values ❌ Hypersensitive to near-zero values ❌ Model learns to predict <strong>median</strong> not mean</p>
+<h3 id="the_bias_problem"><a href="#the_bias_problem" class="header-anchor">The Bias Problem</a></h3>
+<p>Due to Jensen&#39;s inequality, \(\mathbb{E}[e^X] > e^{\mathbb{E}[X]}\).</p>
+<p>If residuals in log-space have variance \(\sigma^2\), you need to correct:</p>
+\[\hat{y}_{\text{unbiased}} = \exp(\hat{y}_{\log} + \frac{\sigma^2}{2})\]
+<p><strong>Example:</strong></p>
+<pre><code class="language-julia">using Statistics
+
+# Calculate residual variance on validation set
+residuals &#61; y_log_true .- y_log_pred
+sigma_squared &#61; var&#40;residuals&#41;
+
+# Correct bias when transforming back
+y_pred &#61; exp.&#40;log_pred .&#43; sigma_squared / 2&#41;</code></pre>
+<p>Most people skip this and their predictions are too low&#33;</p>
+<h2 id="alternative_1_direct_msle_no_transform"><a href="#alternative_1_direct_msle_no_transform" class="header-anchor">Alternative 1: Direct MSLE &#40;No Transform&#41;</a></h2>
+<p><strong>Keep targets in original scale, use custom loss:</strong></p>
+<pre><code class="language-julia"># Custom loss function
+function msle_loss&#40;y_pred, y_true&#41;
+    return mean&#40;&#40;log.&#40;y_pred&#41; .- log.&#40;y_true&#41;&#41;.^2&#41;
+end
+
+# For Flux.jl
+using Flux
+loss&#40;x, y&#41; &#61; Flux.Losses.msle&#40;model&#40;x&#41;, y&#41;
+
+# Or manual implementation
+function msle_loss&#40;ŷ, y&#41;
+    log_diff &#61; log.&#40;ŷ&#41; .- log.&#40;y&#41;
+    return mean&#40;log_diff.^2&#41;
+end</code></pre>
+<p><strong>What you&#39;re optimizing:</strong></p>
+\[L = \mathbb{E}[(\log(\hat{y}) - \log(y))^2]\]
+<p>Same as before, but no manual transformation needed&#33;</p>
+<h3 id="pros__2"><a href="#pros__2" class="header-anchor">Pros:</a></h3>
+<p>✅ No need to transform targets manually ✅ No inverse transform needed ✅ Can apply bias correction during training ✅ Predictions are directly in original scale</p>
+<h3 id="cons__2"><a href="#cons__2" class="header-anchor">Cons:</a></h3>
+<p>❌ Still has bias issue ❌ Requires custom loss implementation ❌ Gradients can be unstable if \(\hat{y}\) gets close to zero ❌ Need to clip predictions: \(\hat{y} > \epsilon\) to avoid log&#40;0&#41;</p>
+<h3 id="gradient_behavior"><a href="#gradient_behavior" class="header-anchor">Gradient Behavior:</a></h3>
+\[\frac{\partial L}{\partial \hat{y}} = \frac{2(\log(\hat{y}) - \log(y))}{\hat{y}}\]
+<p>Notice that \(\frac{1}{\hat{y}}\) term - if prediction is small, gradient explodes&#33; Need to be careful.</p>
+<h2 id="alternative_2_rmsle_root_mean_squared_log_error"><a href="#alternative_2_rmsle_root_mean_squared_log_error" class="header-anchor">Alternative 2: RMSLE &#40;Root Mean Squared Log Error&#41;</a></h2>
+<p>Just the square root of MSLE: \(L = \sqrt{\mathbb{E}[(\log(\hat{y}) - \log(y))^2]}\)</p>
+<pre><code class="language-julia">function rmsle_loss&#40;y_pred, y_true&#41;
+    return sqrt&#40;mean&#40;&#40;log.&#40;y_pred .&#43; 1&#41; .- log.&#40;y_true .&#43; 1&#41;&#41;.^2&#41;&#41;
+end</code></pre>
+<p>Note the <code>&#43;1</code> to handle zeros&#33; This makes it technically:</p>
+\[L = \sqrt{\mathbb{E}[(\log(\hat{y}+1) - \log(y+1))^2]}\]
+<h3 id="pros__3"><a href="#pros__3" class="header-anchor">Pros:</a></h3>
+<p>✅ Same scale as log&#40;y&#41;, easier to interpret ✅ The &#43;1 offset handles zeros ✅ Popular in Kaggle competitions</p>
+<h3 id="cons__3"><a href="#cons__3" class="header-anchor">Cons:</a></h3>
+<p>❌ Still has all the MSLE issues ❌ The &#43;1 is arbitrary ❌ Square root in loss can slow convergence</p>
+<h2 id="alternative_3_mean_absolute_log_error_male"><a href="#alternative_3_mean_absolute_log_error_male" class="header-anchor">Alternative 3: Mean Absolute Log Error &#40;MALE&#41;</a></h2>
+<p>Use L1 instead of L2 in log-space: \(L = \mathbb{E}[|\log(\hat{y}) - \log(y)|]\)</p>
+<pre><code class="language-julia">function male_loss&#40;y_pred, y_true&#41;
+    return mean&#40;abs.&#40;log.&#40;y_pred&#41; .- log.&#40;y_true&#41;&#41;&#41;
+end</code></pre>
+<h3 id="pros__4"><a href="#pros__4" class="header-anchor">Pros:</a></h3>
+<p>✅ More robust to outliers than MSLE ✅ Predicts <strong>median</strong> explicitly &#40;no pretense of predicting mean&#41; ✅ No bias correction needed &#40;for median estimation&#41; ✅ Simpler gradients</p>
+<h3 id="cons__4"><a href="#cons__4" class="header-anchor">Cons:</a></h3>
+<p>❌ If you want mean predictions, this is wrong objective ❌ L1 gradients don&#39;t go to zero &#40;can be jumpy&#41; ❌ Still sensitive near zero</p>
+<h3 id="gradient"><a href="#gradient" class="header-anchor">Gradient:</a></h3>
+\[\frac{\partial L}{\partial \hat{y}} = \frac{\text{sign}(\log(\hat{y}) - \log(y))}{\hat{y}}\]
+<p>Constant magnitude &#40;±1/ŷ&#41;, just changes sign. Can be more stable than L2.</p>
+<h2 id="alternative_4_weighted_mse_in_original_space"><a href="#alternative_4_weighted_mse_in_original_space" class="header-anchor">Alternative 4: Weighted MSE in Original Space</a></h2>
+<p><strong>Don&#39;t transform at all, just weight the loss based on what you care about:</strong></p>
+<h3 id="option_a_optimize_relativepercentage_errors_weights_1y"><a href="#option_a_optimize_relativepercentage_errors_weights_1y" class="header-anchor">Option A: Optimize Relative/Percentage Errors &#40;weights &#61; 1/y²&#41;</a></h3>
+<pre><code class="language-julia"># Makes relative errors equal across all scales
+function relative_mse&#40;y_pred, y_true; epsilon&#61;1e-6&#41;
+    weights &#61; 1.0 ./ &#40;y_true .&#43; epsilon&#41;.^2
+    return mean&#40;weights .* &#40;y_pred .- y_true&#41;.^2&#41;
+end
+
+# Or more directly:
+function relative_mse&#40;y_pred, y_true; epsilon&#61;1e-6&#41;
+    return mean&#40;&#40;&#40;y_pred .- y_true&#41; ./ &#40;y_true .&#43; epsilon&#41;&#41;.^2&#41;
+end</code></pre>
+<p>This optimizes <strong>percentage error squared</strong>: \(L = \mathbb{E}\left[\frac{(\hat{y} - y)^2}{y^2}\right] = \mathbb{E}\left[\left(\frac{\hat{y} - y}{y}\right)^2\right]\)</p>
+<p><strong>Effect:</strong> 10&#37; error at y&#61;10 has same loss as 10&#37; error at y&#61;1000</p>
+<ul>
+<li><p>Error of 1 at y&#61;10 → loss &#61; &#40;1/10&#41;² &#61; 0.01</p>
+</li>
+<li><p>Error of 100 at y&#61;1000 → loss &#61; &#40;100/1000&#41;² &#61; 0.01</p>
+</li>
+</ul>
+<p>⚠️ <strong>This makes small values MORE important in absolute terms&#33;</strong> A weight of 1/y² means smaller y → larger weight.</p>
+<h3 id="option_b_prioritize_large_values_weights_yᵖ"><a href="#option_b_prioritize_large_values_weights_yᵖ" class="header-anchor">Option B: Prioritize Large Values &#40;weights &#61; yᵖ&#41;</a></h3>
+<pre><code class="language-julia"># Makes large values MORE important
+function large_value_mse&#40;y_pred, y_true; power&#61;1, epsilon&#61;1e-6&#41;
+    weights &#61; &#40;y_true .&#43; epsilon&#41;.^power
+    return mean&#40;weights .* &#40;y_pred .- y_true&#41;.^2&#41;
+end</code></pre>
+<p>With <code>power&#61;1</code>: \(L = \mathbb{E}[y \cdot (\hat{y} - y)^2]\)</p>
+<p><strong>Effect:</strong> Errors on large values dominate the loss</p>
+<ul>
+<li><p>Error of 1 at y&#61;10 → loss &#61; 10 × 1² &#61; 10</p>
+</li>
+<li><p>Error of 1 at y&#61;1000 → loss &#61; 1000 × 1² &#61; 1000</p>
+</li>
+</ul>
+<p>The large value contributes <strong>100x more</strong> to the loss&#33;</p>
+<p>With <code>power&#61;2</code>, it&#39;s even more extreme &#40;10,000x difference&#41;.</p>
+<h3 id="which_weighting_should_you_use"><a href="#which_weighting_should_you_use" class="header-anchor">Which Weighting Should You Use?</a></h3>
+<table><tr><th align="right">Your Goal</th><th align="right">Use This Weighting</th><th align="right">Formula</th></tr><tr><td align="right"><strong>Relative errors matter</strong> &#40;10&#37; at any scale is equally bad&#41;</td><td align="right"><code>weights &#61; 1/y²</code></td><td align="right">Percentage errors</td></tr><tr><td align="right"><strong>Large absolute values matter more</strong></td><td align="right"><code>weights &#61; y</code> or <code>y²</code></td><td align="right">Large value focus</td></tr><tr><td align="right"><strong>Uniform treatment</strong></td><td align="right"><code>weights &#61; 1</code></td><td align="right">Plain MSE</td></tr></table>
+<h3 id="pros__5"><a href="#pros__5" class="header-anchor">Pros:</a></h3>
+<p>✅ No transformation needed at all ✅ <strong>No bias issues</strong> - predictions are naturally unbiased ✅ Interpretable: can optimize for relative errors OR large value focus ✅ Works with any model ✅ Direct control over what matters</p>
+<h3 id="cons__5"><a href="#cons__5" class="header-anchor">Cons:</a></h3>
+<p>❌ Can blow up if \(y \approx 0\) with 1/y² weighting &#40;need epsilon&#41; ❌ Requires custom loss function ❌ Need to decide on weighting scheme &#40;relative vs absolute focus&#41;</p>
+<h3 id="relationship_to_msle"><a href="#relationship_to_msle" class="header-anchor">Relationship to MSLE:</a></h3>
+<p>For <strong>relative errors</strong> &#40;weights &#61; 1/y²&#41;, small errors satisfy: \(\left(\frac{\hat{y} - y}{y}\right)^2 \approx \left(\frac{\hat{y}}{y} - 1\right)^2 \approx (\log(\hat{y}) - \log(y))^2\)</p>
+<p>So for small relative errors, relative MSE ≈ MSLE&#33; But:</p>
+<ul>
+<li><p>Relative MSE has <strong>no bias issues</strong></p>
+</li>
+<li><p>MSLE needs bias correction when transforming back</p>
+</li>
+<li><p>For large errors, they diverge</p>
+</li>
+</ul>
+<h2 id="alternative_5_huber_loss_in_log_space"><a href="#alternative_5_huber_loss_in_log_space" class="header-anchor">Alternative 5: Huber Loss in Log Space</a></h2>
+<p>Combines L2 &#40;MSLE&#41; for small errors with L1 &#40;MALE&#41; for large errors: \(L = \begin{cases}
+\frac{1}{2}(\log(\hat{y}) - \log(y))^2 & \text{if } |\log(\hat{y}) - \log(y)| \leq \delta \\
+\delta \cdot (|\log(\hat{y}) - \log(y)| - \frac{\delta}{2}) & \text{otherwise}
+\end{cases}\)</p>
+<pre><code class="language-julia">function log_huber_loss&#40;y_pred, y_true; delta&#61;1.0&#41;
+    log_diff &#61; log.&#40;y_pred&#41; .- log.&#40;y_true&#41;
+    abs_diff &#61; abs.&#40;log_diff&#41;
+    quadratic &#61; 0.5 .* log_diff.^2
+    linear &#61; delta .* &#40;abs_diff .- 0.5 * delta&#41;
+    return mean&#40;ifelse.&#40;abs_diff .&lt;&#61; delta, quadratic, linear&#41;&#41;
+end</code></pre>
+<h3 id="pros__6"><a href="#pros__6" class="header-anchor">Pros:</a></h3>
+<p>✅ Robust to outliers &#40;doesn&#39;t penalize huge errors as much&#41; ✅ Still smooth around zero &#40;better optimization than L1&#41; ✅ Tunable threshold δ</p>
+<h3 id="cons__6"><a href="#cons__6" class="header-anchor">Cons:</a></h3>
+<p>❌ Another hyperparameter to tune &#40;δ&#41; ❌ Still has bias issues from log transform</p>
+<h2 id="alternative_6_quantile_regression"><a href="#alternative_6_quantile_regression" class="header-anchor">Alternative 6: Quantile Regression</a></h2>
+<p>Instead of predicting the mean or median, predict a specific quantile: \(L = \mathbb{E}[\rho_\tau(\log(y) - \log(\hat{y}))]\)</p>
+<p>where \(\rho_\tau(u) = u(\tau - \mathbb{1}_{u < 0})\) is the quantile loss.</p>
+<pre><code class="language-julia">function quantile_log_loss&#40;y_pred, y_true; tau&#61;0.5&#41;
+    log_diff &#61; log.&#40;y_true&#41; .- log.&#40;y_pred&#41;
+    return mean&#40;ifelse.&#40;log_diff .&gt; 0, 
+                        tau .* log_diff,
+                        &#40;tau - 1&#41; .* log_diff&#41;&#41;
+end
+
+# For training multiple quantiles:
+function train_quantile_models&#40;X, y, quantiles&#61;&#91;0.25, 0.5, 0.75&#93;&#41;
+    models &#61; Dict&#40;&#41;
+    for tau in quantiles
+        loss&#40;ŷ, y&#41; &#61; quantile_log_loss&#40;ŷ, y; tau&#61;tau&#41;
+        # Train your model with this loss
+        models&#91;tau&#93; &#61; trained_model
+    end
+    return models
+end</code></pre>
+<p>Set \(\tau = 0.5\) for median, \(\tau = 0.75\) for upper quartile, etc.</p>
+<h3 id="pros__7"><a href="#pros__7" class="header-anchor">Pros:</a></h3>
+<p>✅ Gives you prediction intervals, not just point estimates ✅ Can focus on underestimation risk &#40;τ &gt; 0.5&#41; or overestimation &#40;τ &lt; 0.5&#41; ✅ Very robust</p>
+<h3 id="cons__7"><a href="#cons__7" class="header-anchor">Cons:</a></h3>
+<p>❌ More complex ❌ Need to train separate models for different quantiles ❌ Harder to interpret than mean predictions</p>
+<h2 id="alternative_7_weighted_loss_in_log_space"><a href="#alternative_7_weighted_loss_in_log_space" class="header-anchor">Alternative 7: Weighted Loss in Log Space</a></h2>
+<p>You can combine log transforms with custom weighting to control priorities in log-space:</p>
+<pre><code class="language-julia"># Weight errors in log-space by original scale
+function weighted_log_mse&#40;y_pred, y_true; weight_power&#61;1, epsilon&#61;1e-6&#41;
+    log_pred &#61; log.&#40;y_pred .&#43; epsilon&#41;
+    log_true &#61; log.&#40;y_true .&#43; epsilon&#41;
+    weights &#61; y_true.^weight_power  # Weight by original scale
+    return mean&#40;weights .* &#40;log_pred .- log_true&#41;.^2&#41;
+end</code></pre>
+<h3 id="what_does_this_do"><a href="#what_does_this_do" class="header-anchor">What does this do?</a></h3>
+<p>With <code>weight_power &#61; 1</code>: \(L = \mathbb{E}[y \cdot (\log(\hat{y}) - \log(y))^2]\)</p>
+<p><strong>Effect:</strong> Errors in log-space on large values matter more</p>
+<ul>
+<li><p>Log error of 0.1 at y&#61;10 → loss &#61; 10 × 0.1² &#61; 0.1</p>
+</li>
+<li><p>Log error of 0.1 at y&#61;1000 → loss &#61; 1000 × 0.1² &#61; 100</p>
+</li>
+</ul>
+<p>Same percentage error &#40;since log difference is the same&#41;, but the large value contributes 1000x more to the loss&#33;</p>
+<h3 id="does_this_make_sense"><a href="#does_this_make_sense" class="header-anchor">Does this make sense?</a></h3>
+<p>It depends on what you want:</p>
+<p><strong>Standard MSLE &#40;no weighting&#41;:</strong></p>
+<ul>
+<li><p>Treats multiplicative errors equally at all scales</p>
+</li>
+<li><p>Log error of 0.1 means ~10&#37; relative error whether at y&#61;10 or y&#61;1000</p>
+</li>
+<li><p>Model focuses equally on all scales in percentage terms</p>
+</li>
+</ul>
+<p><strong>Weighted log MSE &#40;weight &#61; y&#41;:</strong></p>
+<ul>
+<li><p>Combines multiplicative scaling with absolute value importance</p>
+</li>
+<li><p>Model cares about percentage errors BUT weighted by magnitude</p>
+</li>
+<li><p>A 10&#37; error on 1000 is treated as 100x more important than 10&#37; error on 10</p>
+</li>
+</ul>
+<p><strong>When to use weighted log loss:</strong></p>
+<p>✅ <strong>Use it when:</strong> You want relative/multiplicative errors, but large values are more important to get right</p>
+<ul>
+<li><p>Example: Revenue prediction where 10&#37; error on &#36;1M revenue hurts more than 10&#37; error on &#36;1k revenue</p>
+</li>
+</ul>
+<p>❌ <strong>Don&#39;t use it when:</strong> You truly care about percentage errors equally &#40;then use standard MSLE&#41;</p>
+<h3 id="comparison_table"><a href="#comparison_table" class="header-anchor">Comparison Table</a></h3>
+<table><tr><th align="right">Approach</th><th align="right">What it optimizes</th><th align="right">Example &#40;error of 1&#41;</th></tr><tr><td align="right"><strong>Plain MSE</strong></td><td align="right">Absolute errors uniformly</td><td align="right">y&#61;10: loss&#61;1², y&#61;1000: loss&#61;1² &#40;same&#41;</td></tr><tr><td align="right"><strong>MSLE &#40;no weight&#41;</strong></td><td align="right">Relative errors uniformly</td><td align="right">y&#61;10: log error ≈ 0.095², y&#61;1000: log error ≈ 0.001²</td></tr><tr><td align="right"><strong>Weighted MSE &#40;w&#61;1/y²&#41;</strong></td><td align="right">Percentage errors</td><td align="right">y&#61;10: loss&#61;&#40;1/10&#41;²&#61;0.01, y&#61;1000: loss&#61;&#40;1/1000&#41;²&#61;0.000001</td></tr><tr><td align="right"><strong>Weighted MSE &#40;w&#61;y&#41;</strong></td><td align="right">Large values &#40;absolute focus&#41;</td><td align="right">y&#61;10: loss&#61;10×1²&#61;10, y&#61;1000: loss&#61;1000×1²&#61;1000</td></tr><tr><td align="right"><strong>Weighted log MSE &#40;w&#61;y&#41;</strong></td><td align="right">Large values &#40;relative focus&#41;</td><td align="right">y&#61;10: log error × 10, y&#61;1000: log error × 1000</td></tr></table>
+<h3 id="practical_implementation"><a href="#practical_implementation" class="header-anchor">Practical Implementation</a></h3>
+<pre><code class="language-julia"># For Flux.jl or other gradient-based training
+function weighted_log_loss&#40;ŷ, y; weight_power&#61;1, epsilon&#61;1e-6&#41;
+    log_error &#61; log.&#40;ŷ .&#43; epsilon&#41; .- log.&#40;y .&#43; epsilon&#41;
+    weights &#61; y.^weight_power
+    return mean&#40;weights .* log_error.^2&#41;
+end
+
+# Example: prioritize large values moderately
+loss&#40;ŷ, y&#41; &#61; weighted_log_loss&#40;ŷ, y; weight_power&#61;0.5&#41;
+# weight_power &#61; 0: standard MSLE &#40;no prioritization&#41;
+# weight_power &#61; 0.5: moderate prioritization &#40;10x value → 3.16x weight&#41;
+# weight_power &#61; 1.0: linear prioritization &#40;10x value → 10x weight&#41;
+# weight_power &#61; 2.0: strong prioritization &#40;10x value → 100x weight&#41;</code></pre>
+<h3 id="my_take"><a href="#my_take" class="header-anchor">My take:</a></h3>
+<p><strong>Weighted log loss can make sense, but it&#39;s getting complicated.</strong> You&#39;re mixing two different scaling philosophies:</p>
+<ol>
+<li><p>Log transform &#61; multiplicative/relative scaling</p>
+</li>
+<li><p>Weighting by y &#61; absolute value importance</p>
+</li>
+</ol>
+<p>If you care about large values in absolute terms, it&#39;s cleaner to just use:</p>
+<pre><code class="language-julia"># Direct: weight by value in original space
+large_value_mse&#40;y_pred, y_true; power&#61;1&#41;</code></pre>
+<p>If you care about relative errors equally, use:</p>
+<pre><code class="language-julia"># Standard log transform &#40;with bias correction&#41;</code></pre>
+<p><strong>Weighted log loss is for the specific case where:</strong> &quot;I want multiplicative scaling, but I also want large values to contribute more to the loss than small values in proportion to their magnitude.&quot;</p>
+<h2 id="alternative_8_poisson_deviance_loss"><a href="#alternative_8_poisson_deviance_loss" class="header-anchor">Alternative 8: Poisson Deviance Loss</a></h2>
+<p>If your data is count-like &#40;non-negative integers or positive reals&#41;, consider: \(L = \mathbb{E}[y \log(y/\hat{y}) + (\hat{y} - y)]\)</p>
+<p>This is the negative log-likelihood for Poisson distribution.</p>
+<pre><code class="language-julia">function poisson_deviance&#40;y_pred, y_true&#41;
+    return mean&#40;y_true .* log.&#40;y_true ./ y_pred&#41; .&#43; &#40;y_pred .- y_true&#41;&#41;
+end
+
+# More stable version that handles zeros:
+function poisson_deviance_stable&#40;y_pred, y_true; epsilon&#61;1e-10&#41;
+    y_pred &#61; max.&#40;y_pred, epsilon&#41;  # Clip predictions
+    # When y_true &#61; 0, the y*log&#40;y/ŷ&#41; term is 0
+    log_term &#61; ifelse.&#40;y_true .&gt; 0, 
+                       y_true .* log.&#40;y_true ./ y_pred&#41;,
+                       0.0&#41;
+    return mean&#40;log_term .&#43; &#40;y_pred .- y_true&#41;&#41;
+end</code></pre>
+<h3 id="pros__8"><a href="#pros__8" class="header-anchor">Pros:</a></h3>
+<p>✅ Natural for count data ✅ Handles zeros properly ✅ Well-studied statistical properties ✅ Predictions are naturally unbiased</p>
+<h3 id="cons__8"><a href="#cons__8" class="header-anchor">Cons:</a></h3>
+<p>❌ Only appropriate for count/rate data ❌ Assumes Poisson variance structure &#40;variance &#61; mean&#41;</p>
+<h2 id="comparison_table__2"><a href="#comparison_table__2" class="header-anchor">Comparison Table</a></h2>
+<table><tr><th align="right">Loss Function</th><th align="right">Bias?</th><th align="right">Handles Zeros?</th><th align="right">Sensitivity Near Zero</th><th align="right">Prioritizes Large Values?</th><th align="right">Good For</th></tr><tr><td align="right"><strong>MSLE &#40;transform&#41;</strong></td><td align="right">⚠️ Yes, needs correction</td><td align="right">❌ No</td><td align="right">🔥 Very high</td><td align="right">❌ No, relative errors</td><td align="right">Quick &amp; dirty, multiplicative data</td></tr><tr><td align="right"><strong>Direct MSLE</strong></td><td align="right">⚠️ Yes</td><td align="right">❌ No</td><td align="right">🔥 Very high</td><td align="right">❌ No, relative errors</td><td align="right">Custom training loop</td></tr><tr><td align="right"><strong>MALE</strong></td><td align="right">✅ No &#40;for median&#41;</td><td align="right">❌ No</td><td align="right">🔥 High</td><td align="right">❌ No</td><td align="right">Robust outliers, median prediction</td></tr><tr><td align="right"><strong>Relative MSE &#40;1/y²&#41;</strong></td><td align="right">✅ No</td><td align="right">⚠️ Need epsilon</td><td align="right">🔥 High &#40;small values matter more&#33;&#41;</td><td align="right">❌ No, percentage errors</td><td align="right"><strong>Relative/percentage error optimization</strong></td></tr><tr><td align="right"><strong>Large Value MSE &#40;yᵖ&#41;</strong></td><td align="right">✅ No</td><td align="right">✅ Yes</td><td align="right">Low &#40;large values matter more&#33;&#41;</td><td align="right">✅ Yes&#33;</td><td align="right"><strong>When large values are what matters</strong></td></tr><tr><td align="right"><strong>Huber &#40;log&#41;</strong></td><td align="right">⚠️ Yes</td><td align="right">❌ No</td><td align="right">🔥 High</td><td align="right">❌ No</td><td align="right">Outlier-robust MSLE</td></tr><tr><td align="right"><strong>Quantile</strong></td><td align="right">✅ No</td><td align="right">❌ No</td><td align="right">🔥 High</td><td align="right">❌ No</td><td align="right">Uncertainty estimates</td></tr><tr><td align="right"><strong>Poisson</strong></td><td align="right">✅ No</td><td align="right">✅ Yes</td><td align="right">Medium</td><td align="right">⚠️ Somewhat</td><td align="right">Count data specifically</td></tr></table>
+<h2 id="my_recommendations"><a href="#my_recommendations" class="header-anchor">My Recommendations</a></h2>
+<h3 id="for_optimizing_relativepercentage_errors_relative_mse"><a href="#for_optimizing_relativepercentage_errors_relative_mse" class="header-anchor">For optimizing relative/percentage errors: Relative MSE</a></h3>
+<pre><code class="language-julia">function relative_mse_loss&#40;y_pred, y_true; epsilon&#61;1e-6&#41;
+    weights &#61; 1.0 ./ &#40;y_true .&#43; epsilon&#41;.^2
+    return mean&#40;weights .* &#40;y_pred .- y_true&#41;.^2&#41;
+end
+
+# Or more directly:
+function relative_mse_loss&#40;y_pred, y_true; epsilon&#61;1e-6&#41;
+    return mean&#40;&#40;&#40;y_pred .- y_true&#41; ./ &#40;y_true .&#43; epsilon&#41;&#41;.^2&#41;
+end</code></pre>
+<p><strong>Why:</strong></p>
+<ul>
+<li><p>No transformation headaches</p>
+</li>
+<li><p>No bias issues  </p>
+</li>
+<li><p>Optimizes relative errors &#40;10&#37; error equally bad at any scale&#41;</p>
+</li>
+<li><p>Clean gradients</p>
+</li>
+</ul>
+<p><strong>⚠️ Important:</strong> This makes small values MORE important in absolute terms&#33; It&#39;s optimizing percentage errors, not prioritizing large values.</p>
+<h3 id="for_prioritizing_large_values_large_value_mse"><a href="#for_prioritizing_large_values_large_value_mse" class="header-anchor">For prioritizing large values: Large Value MSE</a></h3>
+<pre><code class="language-julia">function large_value_mse&#40;y_pred, y_true; power&#61;1, epsilon&#61;1e-6&#41;
+    weights &#61; &#40;y_true .&#43; epsilon&#41;.^power
+    return mean&#40;weights .* &#40;y_pred .- y_true&#41;.^2&#41;
+end</code></pre>
+<p><strong>Why:</strong></p>
+<ul>
+<li><p>No transformations</p>
+</li>
+<li><p>No bias issues</p>
+</li>
+<li><p>Errors on large values contribute much more to loss</p>
+</li>
+<li><p>Power parameter controls how much you prioritize large values</p>
+</li>
+</ul>
+<p><strong>Use when:</strong> You genuinely care more about getting 1000 → 1001 right than 1 → 2.</p>
+<h3 id="if_you_must_use_log_transform_apply_bias_correction"><a href="#if_you_must_use_log_transform_apply_bias_correction" class="header-anchor">If you must use log transform: Apply bias correction</a></h3>
+<pre><code class="language-julia">using Statistics
+
+# During training
+y_log &#61; log.&#40;y&#41;
+# ... train your model on y_log ...
+
+# At inference
+log_pred &#61; predict&#40;model, X&#41;
+residuals &#61; y_log_val .- predict&#40;model, X_val&#41;
+sigma_squared &#61; var&#40;residuals&#41;
+y_pred &#61; exp.&#40;log_pred .&#43; sigma_squared / 2&#41;  # ← Don&#39;t forget this&#33;</code></pre>
+<p><strong>Why:</strong> Without correction, you&#39;re predicting the geometric mean &#40;median in log space&#41;, which systematically underestimates large values.</p>
+<h3 id="for_production_systems_quantile_regression"><a href="#for_production_systems_quantile_regression" class="header-anchor">For production systems: Quantile regression</a></h3>
+<pre><code class="language-julia"># Train 3 models: 25th, 50th, 75th percentile
+quantiles &#61; &#91;0.25, 0.5, 0.75&#93;
+models &#61; Dict&#40;&#41;
+
+for tau in quantiles
+    loss&#40;ŷ, y&#41; &#61; quantile_log_loss&#40;ŷ, y; tau&#61;tau&#41;
+    models&#91;tau&#93; &#61; train_model&#40;X, y, loss&#41;
+end
+
+# Now you have uncertainty bounds&#33;
+y_lower &#61; predict&#40;models&#91;0.25&#93;, X_test&#41;
+y_median &#61; predict&#40;models&#91;0.5&#93;, X_test&#41;
+y_upper &#61; predict&#40;models&#91;0.75&#93;, X_test&#41;</code></pre>
+<p>Especially valuable when large predictions have high stakes.</p>
+<h2 id="the_real_question_what_are_you_optimizing_for"><a href="#the_real_question_what_are_you_optimizing_for" class="header-anchor">The Real Question: What Are You Optimizing For?</a></h2>
+<p>The &quot;right&quot; loss depends on your actual business/scientific goal:</p>
+<table><tr><th align="right">Your Goal</th><th align="right">Use This Loss</th><th align="right">Why</th></tr><tr><td align="right">Minimize <strong>relative/percentage errors</strong> equally across all scales</td><td align="right">Relative MSE &#40;weights &#61; 1/y²&#41; or MSLE</td><td align="right">10&#37; error at 10 &#61; 10&#37; error at 1000</td></tr><tr><td align="right">Minimize <strong>absolute errors</strong> uniformly</td><td align="right">Plain MSE &#40;no transform&#33;&#41;</td><td align="right">All errors weighted equally</td></tr><tr><td align="right"><strong>Large values matter more</strong> in absolute terms</td><td align="right">Large Value MSE &#40;weights &#61; yᵖ&#41;</td><td align="right">Error of 1 at y&#61;1000 matters more than error of 1 at y&#61;10</td></tr><tr><td align="right">Predict <strong>median</strong> &#40;robust to outliers&#41;</td><td align="right">MALE or quantile &#40;τ&#61;0.5&#41;</td><td align="right">Median is more robust</td></tr><tr><td align="right">Predict <strong>mean</strong> unbiased</td><td align="right">Large Value MSE or MSLE with correction</td><td align="right">Avoid systematic bias</td></tr><tr><td align="right"><strong>Underestimation is worse</strong> than overestimation</td><td align="right">Quantile &#40;τ &gt; 0.5&#41; or asymmetric loss</td><td align="right">Penalize low predictions more</td></tr><tr><td align="right"><strong>Overestimation is worse</strong></td><td align="right">Quantile &#40;τ &lt; 0.5&#41; or asymmetric loss</td><td align="right">Penalize high predictions more</td></tr><tr><td align="right">Need <strong>prediction intervals</strong></td><td align="right">Quantile regression &#40;multiple τ&#41;</td><td align="right">Get uncertainty bounds</td></tr><tr><td align="right">Data is <strong>counts/rates</strong></td><td align="right">Poisson deviance</td><td align="right">Natural for count data</td></tr></table>
+<p><strong>Key Insight:</strong> </p>
+<ul>
+<li><p><strong>Relative MSE &#40;1/y²&#41;</strong>: Treats percentage errors equally → small values get MORE weight in absolute terms</p>
+</li>
+<li><p><strong>Large Value MSE &#40;yᵖ&#41;</strong>: Large values get MORE weight → absolute errors on large values dominate</p>
+</li>
+<li><p><strong>Plain MSE</strong>: Uniform weighting → absolute errors treated equally</p>
+</li>
+<li><p><strong>Log transform</strong>: Like relative MSE but with bias issues</p>
+</li>
+</ul>
+<p><strong>Bottom line:</strong> If you care about predicting large quantities accurately in absolute terms, use <strong>Large Value MSE with power&#61;1 or 2</strong>, NOT relative MSE or log transforms&#33;</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 01, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>hljs.highlightAll();hljs.configure({tabReplace: '    '});</script>
+
+    
+  </body>
+</html>

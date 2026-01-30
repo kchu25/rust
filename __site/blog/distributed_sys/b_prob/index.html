@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+  
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Byzantine Generals Problem: Mathematical Formulation</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="byzantine_generals_problem_mathematical_formulation"><a href="#byzantine_generals_problem_mathematical_formulation" class="header-anchor">Byzantine Generals Problem: Mathematical Formulation</a></h1>
+<h2 id="the_setup"><a href="#the_setup" class="header-anchor">The Setup</a></h2>
+<p>Imagine you have \(n\) generals surrounding a city, and they need to coordinate an attack. Some generals are <strong>loyal</strong>, others are <strong>traitors</strong> &#40;Byzantine&#41;. They communicate by sending messengers, but traitors can lie.</p>
+<p><strong>The goal</strong>: All loyal generals must agree on the same plan &#40;attack or retreat&#41;.</p>
+<h2 id="formal_problem_statement"><a href="#formal_problem_statement" class="header-anchor">Formal Problem Statement</a></h2>
+<p>Let&#39;s define this mathematically:</p>
+<ul>
+<li><p>We have \(n\)<strong>nodes</strong> &#40;generals/computers&#41;, where \(f\) are faulty/Byzantine</p>
+</li>
+<li><p>Each node \(i\) has an initial value \(v_i \in \{0, 1\}\) &#40;0 &#61; retreat, 1 &#61; attack&#41;</p>
+</li>
+<li><p>One node is the <strong>commander</strong> &#40;let&#39;s call it node \(c\)&#41;, trying to broadcast its value to all others</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>Terminology note</strong>: In distributed systems, we call these <strong>nodes</strong> or <strong>processes</strong>. A &quot;process&quot; here means an independent computational agent &#40;like a computer or a general&#41;—not a time-dependent process. Think of it as: each node runs a process that executes the protocol. The terms are used interchangeably.</p>
+</blockquote>
+<h3 id="the_two_requirements"><a href="#the_two_requirements" class="header-anchor">The Two Requirements</a></h3>
+<p><strong>1. Agreement</strong>: All loyal nodes decide on the same value</p>
+\[\forall i, j \text{ loyal}: \text{decision}_i = \text{decision}_j\]
+<p><strong>2. Validity</strong>: If the commander is loyal &#40;i.e., honest/non-Byzantine&#41;, all loyal nodes decide on the commander&#39;s value</p>
+\[\text{commander is loyal} \implies \text{decision}_i = v_c \text{ for all loyal } i\]
+<h2 id="why_this_is_hard_the_two_generals_problem_first"><a href="#why_this_is_hard_the_two_generals_problem_first" class="header-anchor">Why This is Hard: The Two Generals Problem First</a></h2>
+<p>Before Byzantine faults, let&#39;s see why even <strong>crash faults</strong> are tricky.</p>
+<blockquote>
+<p><strong>Crash fault</strong>: A node simply stops working &#40;like a power outage or network disconnection&#41;. The node doesn&#39;t lie or send wrong information—it just goes silent. This is much simpler than Byzantine faults where nodes can behave maliciously.</p>
+</blockquote>
+<p><strong>Two Generals Problem</strong>: Two generals on opposite hills need to coordinate an attack. They send messengers through enemy territory—<strong>messages might not arrive</strong> &#40;unreliable communication, not malicious nodes&#41;.</p>
+<p><strong>Important</strong>: Both generals are honest here&#33; No one is lying. The problem is that <strong>acknowledgments can be lost</strong>, creating uncertainty.</p>
+<p>Here&#39;s the issue:</p>
+<ul>
+<li><p>General A sends: &quot;Attack at dawn?&quot;</p>
+</li>
+<li><p>General B receives it, sends back: &quot;Yes, attack at dawn&quot;</p>
+</li>
+<li><p><strong>A&#39;s dilemma</strong>: Did my &quot;attack&quot; message even reach B? If B got it, did B&#39;s &quot;yes&quot; reach me, or was it lost?</p>
+</li>
+<li><p>A sends: &quot;Got your yes&quot; to confirm</p>
+</li>
+<li><p><strong>B&#39;s dilemma</strong>: Did A receive my &quot;yes&quot;? Did A&#39;s &quot;got your yes&quot; reach me, or was it lost?</p>
+</li>
+<li><p>If B didn&#39;t receive &quot;got your yes&quot;, B doesn&#39;t know if A will attack&#33;</p>
+</li>
+</ul>
+<p><strong>The endless loop</strong>: </p>
+<ul>
+<li><p>Every acknowledgment needs its own acknowledgment</p>
+</li>
+<li><p>You can never be 100&#37; certain the other side is committed</p>
+</li>
+<li><p>If either attacks alone, they lose</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>Why is this a fundamental problem?</strong></p>
+<p>You&#39;re right—it&#39;s exactly about communication breaking arbitrarily&#33; The deeper insight is: <em>why can&#39;t we just keep trying until we&#39;re both sure?</em></p>
+<p>Here&#39;s the catch: Imagine you and I need to simultaneously jump into a pool. We can send messages, but any message might not arrive.</p>
+<ul>
+<li><p>I send: &quot;Jump on 3?&quot;</p>
+</li>
+<li><p>You receive it, send back: &quot;OK&#33;&quot;</p>
+</li>
+<li><p><strong>Your worry</strong>: What if my &quot;OK&#33;&quot; didn&#39;t reach you? If it didn&#39;t, you won&#39;t jump, and I&#39;ll look silly jumping alone.</p>
+</li>
+<li><p><strong>My worry</strong>: Even if I got your &quot;OK&#33;&quot;, you don&#39;t know I got it&#33; So you might not jump because you&#39;re afraid I didn&#39;t get the &quot;OK&#33;&quot;</p>
+</li>
+</ul>
+<p>So I send &quot;Got your OK&#33;&quot; But now <em>you</em> don&#39;t know if <em>that</em> message arrived...</p>
+<p><strong>The impossibility</strong>: There&#39;s no final message that makes us both 100&#37; certain. Every confirmation needs confirmation. With unreliable communication, perfect coordination is mathematically impossible.</p>
+<p>This is different from Byzantine where nodes lie. Here, nodes are honest but can&#39;t trust that messages arrived. The network itself is the enemy.</p>
+</blockquote>
+<p><strong>Computer example</strong>: Think of committing a distributed transaction across two databases:</p>
+<ul>
+<li><p>Database A sends: &quot;Ready to commit transaction #42?&quot;</p>
+</li>
+<li><p>Database B receives it, prepares the transaction, sends: &quot;Yes, ready to commit&quot;</p>
+</li>
+<li><p>Database A receives the &quot;yes&quot; and commits locally</p>
+</li>
+<li><p><strong>Problem</strong>: What if A&#39;s final &quot;commit confirmed&quot; message to B gets lost?</p>
+</li>
+<li><p>Now A has committed, but B doesn&#39;t know if it should commit or rollback&#33;</p>
+</li>
+<li><p>If B commits without confirmation, what if A actually crashed and rolled back?</p>
+</li>
+<li><p>This is exactly why distributed transactions are hard—you need a protocol like two-phase commit with timeouts and coordinator recovery.</p>
+</li>
+</ul>
+<p><strong>The kicker</strong>: There&#39;s <strong>no protocol</strong> that guarantees both parties are certain without infinitely many acknowledgments, assuming messages can be lost.</p>
+<p><em>Mathematically</em>: With unreliable communication, you cannot achieve agreement with certainty. This is proven using a reduction to the <strong>coordinated attack problem</strong>, which is impossible.</p>
+<h2 id="back_to_byzantine_the_impossibility_result"><a href="#back_to_byzantine_the_impossibility_result" class="header-anchor">Back to Byzantine: The Impossibility Result</a></h2>
+<p>Here&#39;s the famous result by Lamport, Shostak, and Pease &#40;1982&#41; in their paper <a href="https://lamport.azurewebsites.net/pubs/byz.pdf">&quot;The Byzantine Generals Problem&quot;</a>:</p>
+<h3 id="theorem_impossibility"><a href="#theorem_impossibility" class="header-anchor">Theorem &#40;Impossibility&#41;</a></h3>
+<p><strong>No solution exists for \(n \leq 3f\) nodes when \(f\) are Byzantine.</strong></p>
+<p>In particular: You <strong>cannot</strong> solve Byzantine consensus with 3 nodes when 1 is Byzantine.</p>
+<blockquote>
+<p><strong>Wait, don&#39;t we need to know \(f\) in advance?</strong></p>
+<p>Great question&#33; You&#39;re right—we don&#39;t know which specific nodes are Byzantine or exactly how many there are.</p>
+<p>What we actually need is an <strong>assumption</strong> about the upper bound: &quot;At most \(f\) nodes will be Byzantine.&quot; Then we design the system for that worst case.</p>
+<p>Think of it like building a bridge: you don&#39;t know the exact weight of future trucks, but you design for &quot;at most 40 tons.&quot; Similarly, you might say &quot;our system has 10 nodes, we&#39;ll design it to tolerate at most 3 Byzantine nodes.&quot; This means you need at least \(n = 3(3) + 1 = 10\) nodes.</p>
+<p>In practice:</p>
+<ul>
+<li><p>Bitcoin assumes: &quot;Less than 50&#37; of mining power is malicious&quot;</p>
+</li>
+<li><p>Enterprise systems might assume: &quot;At most 1 out of 4 data centers could be compromised&quot;</p>
+</li>
+<li><p>The algorithm doesn&#39;t need to identify <em>which</em> nodes are bad, just survive as long as there aren&#39;t <em>too many</em></p>
+</li>
+</ul>
+<p>If your assumption is wrong &#40;more than \(f\) nodes are actually Byzantine&#41;, all bets are off—the system can fail.</p>
+</blockquote>
+<h3 id="why_a_concrete_example"><a href="#why_a_concrete_example" class="header-anchor">Why? A Concrete Example</a></h3>
+<p>Say we have 3 generals: \(A\) &#40;commander&#41;, \(B\), and \(C\), where one is a traitor.</p>
+<p><strong>Case 1: \(A\) is the traitor</strong></p>
+<ul>
+<li><p>\(A\) tells \(B\): &quot;Attack&quot; &#40;value &#61; 1&#41;</p>
+</li>
+<li><p>\(A\) tells \(C\): &quot;Retreat&quot; &#40;value &#61; 0&#41;</p>
+</li>
+<li><p>\(B\) and \(C\) exchange what they heard</p>
+</li>
+<li><p>\(B\) says: &quot;\(A\) told me attack&quot;</p>
+</li>
+<li><p>\(C\) says: &quot;\(A\) told me retreat&quot;</p>
+</li>
+<li><p><strong>Dilemma</strong>: Both \(B\) and \(C\) are loyal but can&#39;t agree&#33;</p>
+</li>
+</ul>
+<p><strong>Case 2: \(C\) is the traitor</strong></p>
+<ul>
+<li><p>\(A\) &#40;loyal commander&#41; tells everyone: &quot;Attack&quot;</p>
+</li>
+<li><p>\(B\) receives &quot;attack&quot;</p>
+</li>
+<li><p>\(C\) lies to \(B\): &quot;\(A\) told me retreat&quot;</p>
+</li>
+<li><p><strong>From \(B\)&#39;s perspective</strong>: This looks identical to Case 1 where \(A\) was lying&#33;</p>
+</li>
+<li><p>\(B\) can&#39;t tell if \(A\) or \(C\) is the traitor, so can&#39;t make a safe decision</p>
+</li>
+</ul>
+<p>This is the core problem: <strong>indistinguishability</strong>. Honest nodes can&#39;t tell who&#39;s lying.</p>
+<h2 id="the_solution_n_geq_3f_1"><a href="#the_solution_n_geq_3f_1" class="header-anchor">The Solution: \(n \geq 3f + 1\)</a></h2>
+<h3 id="the_key_insight"><a href="#the_key_insight" class="header-anchor">The Key Insight</a></h3>
+<p>If we have \(n = 3f + 1\) nodes, we can use <strong>majority voting</strong> across multiple rounds.</p>
+<p><strong>Why \(3f + 1\)?</strong> Think about quorums:</p>
+<ul>
+<li><p>A quorum needs size \(2f + 1\) &#40;majority&#41;</p>
+</li>
+<li><p>Any two quorums overlap in at least \((2f+1) + (2f+1) - (3f+1) = f+1\) nodes</p>
+</li>
+<li><p>Since at most \(f\) are Byzantine, the overlap has <strong>at least 1 honest node</strong></p>
+</li>
+<li><p>This guarantees consistency across decisions&#33;</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>Why this formula?</strong></p>
+<p>Imagine you have two groups of people &#40;quorums&#41;, each with \(2f+1\) members, drawn from a total of \(3f+1\) people.</p>
+<p><strong>Question</strong>: How many people must be in <em>both</em> groups?</p>
+<p>If you add the two group sizes: \((2f+1) + (2f+1) = 4f+2\) people total &#40;counting duplicates&#41;.</p>
+<p>But there are only \(3f+1\) people overall&#33;</p>
+<p>The &quot;extra&quot; people beyond \(3f+1\) must be the ones counted twice &#40;the overlap&#41;:</p>
+</blockquote>
+\[\text{overlap} = (4f+2) - (3f+1) = f+1\]
+<blockquote>
+<p><strong>Why this matters</strong>: If at most \(f\) people are traitors, and two groups overlap by \(f+1\) people, then at least one person in the overlap must be honest. This honest person ensures both groups see consistent information.</p>
+</blockquote>
+<blockquote>
+<p><strong>Wait, isn&#39;t this just about majority voting?</strong></p>
+<p>Not quite&#33; The key isn&#39;t just &quot;majority wins&quot;—it&#39;s about <strong>consistency across different decisions</strong>.</p>
+<p>Here&#39;s the problem: Say Decision A is made by one quorum, and Decision B is made by a different quorum. How do we know they won&#39;t contradict each other?</p>
+<p><strong>The trick</strong>: Because the two quorums <em>must</em> share at least one honest node, that honest node participated in both decisions. Since honest nodes don&#39;t lie, they tell the truth to both groups. This prevents the system from making contradictory decisions.</p>
+<p>Think of it like two juries: if they share at least one honest juror, and that juror saw the same evidence, the juries can&#39;t reach completely opposite verdicts based on facts. The overlap creates a &quot;memory&quot; that links decisions together.</p>
+</blockquote>
+<h3 id="the_algorithm_oral_messages_omm"><a href="#the_algorithm_oral_messages_omm" class="header-anchor">The Algorithm &#40;Oral Messages, OM&#40;m&#41;&#41;</a></h3>
+<p>Here&#39;s Lamport&#39;s recursive algorithm for \(m\) rounds of message passing &#40;need \(m \geq f\)&#41;:</p>
+<p><strong>OM&#40;0&#41;</strong>: </p>
+<ol>
+<li><p>Commander sends value \(v\) to all</p>
+</li>
+<li><p>Each node uses the value received &#40;or default if nothing received&#41;</p>
+</li>
+</ol>
+<p><strong>OM&#40;m&#41;</strong> for \(m > 0\):</p>
+<ol>
+<li><p>Commander sends value \(v\) to all lieutenants</p>
+</li>
+<li><p>Each lieutenant \(i\) receives value \(v_i\) &#40;or default&#41;, then acts as commander in \(OM(m-1)\) to send \(v_i\) to all others</p>
+</li>
+<li><p>Each lieutenant collects values from all others via \(OM(m-1)\)</p>
+</li>
+<li><p>Each uses <strong>majority</strong> of received values</p>
+</li>
+</ol>
+<h3 id="example_4_generals_1_traitor"><a href="#example_4_generals_1_traitor" class="header-anchor">Example: 4 Generals, 1 Traitor</a></h3>
+<p>Let \(A\) be commander, and say \(D\) is the traitor.</p>
+<p><strong>Round 1</strong>: </p>
+<ul>
+<li><p>\(A\) sends value &#61; 1 to everyone</p>
+</li>
+</ul>
+<p><strong>Round 2</strong>: Each lieutenant broadcasts what they heard</p>
+<ul>
+<li><p>\(B\) tells \(C, D\): &quot;\(A\) said 1&quot;</p>
+</li>
+<li><p>\(C\) tells \(B, D\): &quot;\(A\) said 1&quot;  </p>
+</li>
+<li><p>\(D\) lies, tells \(B\): &quot;\(A\) said 0&quot;</p>
+</li>
+</ul>
+<p><strong>Decision</strong>:</p>
+<ul>
+<li><p>\(B\) has: &#123;&#36;A&#36;→1, &#36;C&#36;→&#40;&#36;A&#36;→1&#41;, &#36;D&#36;→&#40;&#36;A&#36;→0&#41;&#125;</p>
+<ul>
+<li><p>Majority says \(A\)→1, so \(B\) decides <strong>1</strong> ✓</p>
+</li>
+</ul>
+</li>
+<li><p>\(C\) has: &#123;&#36;A&#36;→1, &#36;B&#36;→&#40;&#36;A&#36;→1&#41;, &#36;D&#36;→&#40;?&#41;&#125;</p>
+<ul>
+<li><p>Majority says \(A\)→1, so \(C\) decides <strong>1</strong> ✓</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Both loyal generals agree&#33;</p>
+<h2 id="complexity"><a href="#complexity" class="header-anchor">Complexity</a></h2>
+<p>For \(n\) nodes and \(f\) Byzantine faults:</p>
+<p><strong>Message complexity</strong>: \(O(n^{f+1})\) messages</p>
+<ul>
+<li><p>Each node broadcasts to all others</p>
+</li>
+<li><p>Recursively for \(f\) rounds</p>
+</li>
+<li><p>This explodes fast&#33; For \(f=3\): \(O(n^4)\) messages</p>
+</li>
+</ul>
+<p><strong>Time complexity</strong>: \(O(f)\) rounds</p>
+<ul>
+<li><p>Need \(f+1\) rounds of communication</p>
+</li>
+<li><p>Each round takes one network delay</p>
+</li>
+</ul>
+<p>This is why practical BFT &#40;like PBFT&#41; uses signatures and other tricks to reduce the message complexity.</p>
+<h2 id="the_graph_view"><a href="#the_graph_view" class="header-anchor">The Graph View</a></h2>
+<p>Think of this as a graph problem:</p>
+<ul>
+<li><p><strong>Vertices</strong> &#61; nodes</p>
+</li>
+<li><p><strong>Edges</strong> &#61; communication channels</p>
+</li>
+<li><p><strong>Adversarial vertices</strong> &#61; Byzantine nodes that can send different values along different edges</p>
+</li>
+</ul>
+<p>The \(3f+1\) bound means we need enough honest vertices that they form a <strong>connected majority</strong> in any partition of the graph. Byzantine vertices try to disconnect the honest ones by sending conflicting information, but majority voting ensures honest nodes see consistent values.</p>
+<h2 id="key_takeaway"><a href="#key_takeaway" class="header-anchor">Key Takeaway</a></h2>
+<p>Byzantine consensus is hard because:</p>
+<ol>
+<li><p>Traitors can lie arbitrarily &#40;send different messages to different people&#41;</p>
+</li>
+<li><p>Honest nodes can&#39;t distinguish &quot;traitor lying to me&quot; from &quot;traitor lying to someone else about you&quot;</p>
+</li>
+<li><p>You need enough redundancy &#40;\(3f+1\) nodes&#41; that majority voting reveals truth</p>
+</li>
+</ol>
+<p>The mathematics shows this bound is <strong>tight</strong>—you cannot do better than \(n \geq 3f+1\) without additional assumptions &#40;like cryptography, timing assumptions, or proof-of-work&#41;.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 29, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+  </body>
+</html>

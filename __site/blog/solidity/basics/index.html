@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Solidity Guide: Syntax, Concepts & Patterns</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="solidity_guide_syntax_concepts_patterns"><a href="#solidity_guide_syntax_concepts_patterns" class="header-anchor">Solidity Guide: Syntax, Concepts &amp; Patterns</a></h1>
+<h2 id="what_is_solidity_really"><a href="#what_is_solidity_really" class="header-anchor">What is Solidity, Really?</a></h2>
+<p>You already know it&#39;s for smart contracts, but here&#39;s the thing: Solidity is basically a language that runs on the Ethereum Virtual Machine &#40;EVM&#41;. When you write Solidity code, it gets compiled into bytecode that lives on the blockchain forever. Every function call costs gas &#40;real money&#33;&#41;, so writing efficient code isn&#39;t just good practice—it&#39;s literally saving users cash.</p>
+<blockquote>
+<p><strong>What&#39;s the EVM?</strong> Think of it as a giant, distributed computer that runs across thousands of nodes worldwide. When you deploy a smart contract, every node runs the same bytecode in this virtual machine. It&#39;s deterministic &#40;same input &#61; same output always&#41; and sandboxed &#40;can&#39;t access your file system or make random API calls&#41;. The EVM processes transactions in 256-bit words and charges gas for every operation—adding two numbers costs 3 gas, storing data costs thousands. It&#39;s intentionally slow and expensive to prevent spam and ensure every node can keep up.</p>
+</blockquote>
+<h2 id="core_syntax_overview"><a href="#core_syntax_overview" class="header-anchor">Core Syntax Overview</a></h2>
+<h3 id="the_basics"><a href="#the_basics" class="header-anchor">The Basics</a></h3>
+<p>Every Solidity file starts with a version pragma. This tells the compiler which version to use:</p>
+<pre><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;</code></pre>
+<p>The <code>^0.8.0</code> means &quot;use version 0.8.0 or any newer minor version, but not 0.9.0.&quot;</p>
+<h3 id="contract_structure"><a href="#contract_structure" class="header-anchor">Contract Structure</a></h3>
+<p>Think of a contract like a class in object-oriented programming:</p>
+<pre><code class="language-solidity">contract MyContract &#123;
+    // State variables &#40;stored on blockchain&#41;
+    uint256 public myNumber;
+    address public owner;
+    
+    // Events &#40;for logging&#41;
+    event NumberChanged&#40;uint256 newNumber&#41;;
+    
+    // Constructor &#40;runs once on deployment&#41;
+    constructor&#40;&#41; &#123;
+        owner &#61; msg.sender;
+    &#125;
+    
+    // Functions
+    function setNumber&#40;uint256 _newNumber&#41; public &#123;
+        myNumber &#61; _newNumber;
+        emit NumberChanged&#40;_newNumber&#41;;
+    &#125;
+&#125;</code></pre>
+<h3 id="data_types"><a href="#data_types" class="header-anchor">Data Types</a></h3>
+<p><strong>Value Types</strong> &#40;stored directly&#41;:</p>
+<ul>
+<li><p><code>bool</code>: true or false</p>
+</li>
+<li><p><code>uint256</code>: unsigned integer &#40;0 to 2^256-1&#41;</p>
+</li>
+<li><p><code>int256</code>: signed integer</p>
+</li>
+<li><p><code>address</code>: 20-byte Ethereum address</p>
+</li>
+<li><p><code>bytes32</code>: fixed-size byte array</p>
+</li>
+</ul>
+<p><strong>Reference Types</strong> &#40;passed by reference&#41;:</p>
+<ul>
+<li><p><code>string</code>: dynamic text</p>
+</li>
+<li><p><code>bytes</code>: dynamic byte array</p>
+</li>
+<li><p><code>arrays</code>: like <code>uint256&#91;&#93;</code> or <code>uint256&#91;5&#93;</code></p>
+</li>
+<li><p><code>mapping</code>: like a hash map, e.g., <code>mapping&#40;address &#61;&gt; uint256&#41;</code></p>
+</li>
+<li><p><code>struct</code>: custom data structures</p>
+</li>
+</ul>
+<h3 id="visibility_modifiers"><a href="#visibility_modifiers" class="header-anchor">Visibility Modifiers</a></h3>
+<p>Functions and state variables have visibility:</p>
+<ul>
+<li><p><code>public</code>: callable by anyone, generates a getter for state variables</p>
+</li>
+<li><p><code>private</code>: only callable within this contract</p>
+</li>
+<li><p><code>internal</code>: callable within this contract and derived contracts</p>
+</li>
+<li><p><code>external</code>: only callable from outside &#40;saves gas vs public&#41;</p>
+</li>
+</ul>
+<pre><code class="language-solidity">uint256 public publicVar;      // Anyone can read
+uint256 private secretVar;     // Only this contract
+uint256 internal sharedVar;    // This &#43; child contracts
+
+function publicFunc&#40;&#41; public &#123;&#125;
+function externalFunc&#40;&#41; external &#123;&#125;
+function internalFunc&#40;&#41; internal &#123;&#125;
+function privateFunc&#40;&#41; private &#123;&#125;</code></pre>
+<h3 id="function_modifiers"><a href="#function_modifiers" class="header-anchor">Function Modifiers</a></h3>
+<p>These change how functions behave:</p>
+<ul>
+<li><p><code>view</code>: reads state but doesn&#39;t modify it</p>
+</li>
+<li><p><code>pure</code>: doesn&#39;t read or modify state</p>
+</li>
+<li><p><code>payable</code>: can receive Ether</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function getBalance&#40;&#41; public view returns &#40;uint256&#41; &#123;
+    return address&#40;this&#41;.balance;
+&#125;
+
+function calculateSum&#40;uint a, uint b&#41; public pure returns &#40;uint&#41; &#123;
+    return a &#43; b;
+&#125;
+
+function deposit&#40;&#41; public payable &#123;
+    // Can receive ETH
+&#125;</code></pre>
+<h3 id="custom_modifiers"><a href="#custom_modifiers" class="header-anchor">Custom Modifiers</a></h3>
+<p>These are reusable checks:</p>
+<pre><code class="language-solidity">modifier onlyOwner&#40;&#41; &#123;
+    require&#40;msg.sender &#61;&#61; owner, &quot;Not the owner&quot;&#41;;
+    _;  // This is where the function body gets inserted
+&#125;
+
+function criticalFunction&#40;&#41; public onlyOwner &#123;
+    // Only owner can call this
+&#125;</code></pre>
+<h3 id="special_variables"><a href="#special_variables" class="header-anchor">Special Variables</a></h3>
+<p>Solidity gives you some built-in globals:</p>
+<ul>
+<li><p><code>msg.sender</code>: address that called this function</p>
+</li>
+<li><p><code>msg.value</code>: amount of Ether sent with the call</p>
+</li>
+<li><p><code>block.timestamp</code>: current block timestamp</p>
+</li>
+<li><p><code>block.number</code>: current block number</p>
+</li>
+<li><p><code>address&#40;this&#41;.balance</code>: contract&#39;s Ether balance</p>
+</li>
+</ul>
+<h2 id="how_solidity_actually_works"><a href="#how_solidity_actually_works" class="header-anchor">How Solidity Actually Works</a></h2>
+<h3 id="the_evm_and_gas"><a href="#the_evm_and_gas" class="header-anchor">The EVM and Gas</a></h3>
+<p>Every operation costs gas. Storage is expensive, computation is cheaper. That&#39;s why you&#39;ll see patterns that minimize storage writes:</p>
+<pre><code class="language-solidity">// Expensive - multiple storage writes
+function badExample&#40;uint&#91;&#93; memory data&#41; public &#123;
+    for &#40;uint i &#61; 0; i &lt; data.length; i&#43;&#43;&#41; &#123;
+        myArray.push&#40;data&#91;i&#93;&#41;;  // Storage write each iteration
+    &#125;
+&#125;
+
+// Better - single storage write
+function goodExample&#40;uint&#91;&#93; memory data&#41; public &#123;
+    uint len &#61; data.length;
+    for &#40;uint i &#61; 0; i &lt; len; i&#43;&#43;&#41; &#123;
+        myArray.push&#40;data&#91;i&#93;&#41;;
+    &#125;
+&#125;</code></pre>
+<h3 id="storage_vs_memory_vs_calldata"><a href="#storage_vs_memory_vs_calldata" class="header-anchor">Storage vs Memory vs Calldata</a></h3>
+<ul>
+<li><p><code>storage</code>: persistent data on the blockchain &#40;expensive&#41;</p>
+</li>
+<li><p><code>memory</code>: temporary data during function execution &#40;cheaper&#41;</p>
+</li>
+<li><p><code>calldata</code>: read-only temporary data for function parameters &#40;cheapest&#41;</p>
+</li>
+</ul>
+<pre><code class="language-solidity">function processData&#40;uint&#91;&#93; calldata data&#41; external &#123;
+    // data is in calldata - can&#39;t modify it
+    uint&#91;&#93; memory tempData &#61; new uint&#91;&#93;&#40;data.length&#41;;
+    // tempData is in memory - temporary
+&#125;</code></pre>
+<h3 id="mappings_and_arrays"><a href="#mappings_and_arrays" class="header-anchor">Mappings and Arrays</a></h3>
+<p>Mappings are super efficient for lookups but can&#39;t be iterated:</p>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; uint256&#41; public balances;
+
+function updateBalance&#40;address user, uint256 amount&#41; public &#123;
+    balances&#91;user&#93; &#61; amount;  // O&#40;1&#41; lookup
+&#125;</code></pre>
+<p>Arrays can be iterated but be careful with loops &#40;gas limits&#33;&#41;:</p>
+<pre><code class="language-solidity">address&#91;&#93; public users;
+
+function addUser&#40;address user&#41; public &#123;
+    users.push&#40;user&#41;;
+&#125;
+
+function getUserCount&#40;&#41; public view returns &#40;uint&#41; &#123;
+    return users.length;
+&#125;</code></pre>
+<h3 id="events"><a href="#events" class="header-anchor">Events</a></h3>
+<p>Events are cheap ways to log data. They&#39;re stored in transaction logs, not in contract storage:</p>
+<pre><code class="language-solidity">event Transfer&#40;address indexed from, address indexed to, uint256 amount&#41;;
+
+function transfer&#40;address to, uint256 amount&#41; public &#123;
+    // ... transfer logic ...
+    emit Transfer&#40;msg.sender, to, amount&#41;;
+&#125;</code></pre>
+<p>The <code>indexed</code> keyword &#40;max 3 per event&#41; lets you filter events by those parameters.</p>
+<h3 id="inheritance"><a href="#inheritance" class="header-anchor">Inheritance</a></h3>
+<p>Solidity supports multiple inheritance:</p>
+<pre><code class="language-solidity">contract Animal &#123;
+    function makeSound&#40;&#41; public virtual returns &#40;string memory&#41; &#123;
+        return &quot;Some sound&quot;;
+    &#125;
+&#125;
+
+contract Dog is Animal &#123;
+    function makeSound&#40;&#41; public override returns &#40;string memory&#41; &#123;
+        return &quot;Woof&quot;;
+    &#125;
+&#125;</code></pre>
+<h3 id="interfaces_and_abstract_contracts"><a href="#interfaces_and_abstract_contracts" class="header-anchor">Interfaces and Abstract Contracts</a></h3>
+<p>Interfaces define function signatures without implementation:</p>
+<pre><code class="language-solidity">interface IERC20 &#123;
+    function transfer&#40;address to, uint256 amount&#41; external returns &#40;bool&#41;;
+    function balanceOf&#40;address account&#41; external view returns &#40;uint256&#41;;
+&#125;
+
+contract MyToken is IERC20 &#123;
+    // Must implement all interface functions
+    function transfer&#40;address to, uint256 amount&#41; external returns &#40;bool&#41; &#123;
+        // Implementation here
+    &#125;
+    
+    function balanceOf&#40;address account&#41; external view returns &#40;uint256&#41; &#123;
+        // Implementation here
+    &#125;
+&#125;</code></pre>
+<h2 id="most_used_patterns"><a href="#most_used_patterns" class="header-anchor">Most Used Patterns</a></h2>
+<h3 id="access_control_pattern"><a href="#access_control_pattern" class="header-anchor"><ol>
+<li><p>Access Control Pattern</p>
+</li>
+</ol>
+</a></h3>
+<p>The most common pattern - restrict who can do what:</p>
+<pre><code class="language-solidity">contract AccessControl &#123;
+    address public owner;
+    mapping&#40;address &#61;&gt; bool&#41; public admins;
+    
+    constructor&#40;&#41; &#123;
+        owner &#61; msg.sender;
+    &#125;
+    
+    modifier onlyOwner&#40;&#41; &#123;
+        require&#40;msg.sender &#61;&#61; owner, &quot;Not owner&quot;&#41;;
+        _;
+    &#125;
+    
+    modifier onlyAdmin&#40;&#41; &#123;
+        require&#40;admins&#91;msg.sender&#93;, &quot;Not admin&quot;&#41;;
+        _;
+    &#125;
+    
+    function addAdmin&#40;address admin&#41; public onlyOwner &#123;
+        admins&#91;admin&#93; &#61; true;
+    &#125;
+&#125;</code></pre>
+<h3 id="ol_start2_withdrawal_pattern"><a href="#ol_start2_withdrawal_pattern" class="header-anchor"><ol start="2">
+<li><p>Withdrawal Pattern</p>
+</li>
+</ol>
+</a></h3>
+<p>Never send funds directly in the same transaction. Let users withdraw instead:</p>
+<pre><code class="language-solidity">contract Marketplace &#123;
+    mapping&#40;address &#61;&gt; uint256&#41; public pendingWithdrawals;
+    
+    function sellItem&#40;uint256 itemId&#41; public &#123;
+        // ... logic ...
+        uint256 proceeds &#61; 100 ether;
+        pendingWithdrawals&#91;msg.sender&#93; &#43;&#61; proceeds;
+    &#125;
+    
+    function withdraw&#40;&#41; public &#123;
+        uint256 amount &#61; pendingWithdrawals&#91;msg.sender&#93;;
+        require&#40;amount &gt; 0, &quot;Nothing to withdraw&quot;&#41;;
+        
+        pendingWithdrawals&#91;msg.sender&#93; &#61; 0;  // Set to 0 BEFORE sending
+        
+        &#40;bool success, &#41; &#61; msg.sender.call&#123;value: amount&#125;&#40;&quot;&quot;&#41;;
+        require&#40;success, &quot;Transfer failed&quot;&#41;;
+    &#125;
+&#125;</code></pre>
+<h3 id="ol_start3_checks-effects-interactions_pattern"><a href="#ol_start3_checks-effects-interactions_pattern" class="header-anchor"><ol start="3">
+<li><p>Checks-Effects-Interactions Pattern</p>
+</li>
+</ol>
+</a></h3>
+<p>Guard against reentrancy attacks:</p>
+<pre><code class="language-solidity">function withdraw&#40;uint256 amount&#41; public &#123;
+    // 1. CHECKS
+    require&#40;balances&#91;msg.sender&#93; &gt;&#61; amount, &quot;Insufficient balance&quot;&#41;;
+    
+    // 2. EFFECTS &#40;update state&#41;
+    balances&#91;msg.sender&#93; -&#61; amount;
+    
+    // 3. INTERACTIONS &#40;external calls last&#41;
+    &#40;bool success, &#41; &#61; msg.sender.call&#123;value: amount&#125;&#40;&quot;&quot;&#41;;
+    require&#40;success, &quot;Transfer failed&quot;&#41;;
+&#125;</code></pre>
+<h3 id="ol_start4_factory_pattern"><a href="#ol_start4_factory_pattern" class="header-anchor"><ol start="4">
+<li><p>Factory Pattern</p>
+</li>
+</ol>
+</a></h3>
+<p>Contracts that create other contracts:</p>
+<pre><code class="language-solidity">contract TokenFactory &#123;
+    address&#91;&#93; public allTokens;
+    
+    event TokenCreated&#40;address tokenAddress&#41;;
+    
+    function createToken&#40;string memory name&#41; public returns &#40;address&#41; &#123;
+        Token newToken &#61; new Token&#40;name, msg.sender&#41;;
+        allTokens.push&#40;address&#40;newToken&#41;&#41;;
+        emit TokenCreated&#40;address&#40;newToken&#41;&#41;;
+        return address&#40;newToken&#41;;
+    &#125;
+&#125;
+
+contract Token &#123;
+    string public name;
+    address public owner;
+    
+    constructor&#40;string memory _name, address _owner&#41; &#123;
+        name &#61; _name;
+        owner &#61; _owner;
+    &#125;
+&#125;</code></pre>
+<h3 id="ol_start5_oracle_pattern"><a href="#ol_start5_oracle_pattern" class="header-anchor"><ol start="5">
+<li><p>Oracle Pattern</p>
+</li>
+</ol>
+</a></h3>
+<p>Getting off-chain data on-chain:</p>
+<pre><code class="language-solidity">contract PriceOracle &#123;
+    address public oracle;
+    uint256 public price;
+    
+    event PriceUpdated&#40;uint256 newPrice&#41;;
+    
+    modifier onlyOracle&#40;&#41; &#123;
+        require&#40;msg.sender &#61;&#61; oracle, &quot;Not oracle&quot;&#41;;
+        _;
+    &#125;
+    
+    function updatePrice&#40;uint256 newPrice&#41; public onlyOracle &#123;
+        price &#61; newPrice;
+        emit PriceUpdated&#40;newPrice&#41;;
+    &#125;
+&#125;</code></pre>
+<h2 id="design_patterns"><a href="#design_patterns" class="header-anchor">Design Patterns</a></h2>
+<h3 id="proxy_pattern_upgradeable_contracts"><a href="#proxy_pattern_upgradeable_contracts" class="header-anchor">Proxy Pattern &#40;Upgradeable Contracts&#41;</a></h3>
+<p>Since contracts are immutable, proxies let you &quot;upgrade&quot; by pointing to new implementation:</p>
+<pre><code class="language-solidity">contract Proxy &#123;
+    address public implementation;
+    address public admin;
+    
+    constructor&#40;address _implementation&#41; &#123;
+        implementation &#61; _implementation;
+        admin &#61; msg.sender;
+    &#125;
+    
+    fallback&#40;&#41; external payable &#123;
+        address impl &#61; implementation;
+        assembly &#123;
+            calldatacopy&#40;0, 0, calldatasize&#40;&#41;&#41;
+            let result :&#61; delegatecall&#40;gas&#40;&#41;, impl, 0, calldatasize&#40;&#41;, 0, 0&#41;
+            returndatacopy&#40;0, 0, returndatasize&#40;&#41;&#41;
+            switch result
+            case 0 &#123; revert&#40;0, returndatasize&#40;&#41;&#41; &#125;
+            default &#123; return&#40;0, returndatasize&#40;&#41;&#41; &#125;
+        &#125;
+    &#125;
+    
+    function upgrade&#40;address newImplementation&#41; public &#123;
+        require&#40;msg.sender &#61;&#61; admin, &quot;Not admin&quot;&#41;;
+        implementation &#61; newImplementation;
+    &#125;
+&#125;</code></pre>
+<h3 id="state_machine_pattern"><a href="#state_machine_pattern" class="header-anchor">State Machine Pattern</a></h3>
+<p>For workflows with distinct states:</p>
+<pre><code class="language-solidity">contract Auction &#123;
+    enum State &#123; Created, Bidding, Ended, Canceled &#125;
+    State public state;
+    
+    modifier inState&#40;State _state&#41; &#123;
+        require&#40;state &#61;&#61; _state, &quot;Invalid state&quot;&#41;;
+        _;
+    &#125;
+    
+    function startBidding&#40;&#41; public inState&#40;State.Created&#41; &#123;
+        state &#61; State.Bidding;
+    &#125;
+    
+    function placeBid&#40;&#41; public payable inState&#40;State.Bidding&#41; &#123;
+        // Bidding logic
+    &#125;
+    
+    function endAuction&#40;&#41; public inState&#40;State.Bidding&#41; &#123;
+        state &#61; State.Ended;
+    &#125;
+&#125;</code></pre>
+<h3 id="circuit_breaker_emergency_stop"><a href="#circuit_breaker_emergency_stop" class="header-anchor">Circuit Breaker &#40;Emergency Stop&#41;</a></h3>
+<p>Pause contract in case of emergency:</p>
+<pre><code class="language-solidity">contract EmergencyStop &#123;
+    bool public paused;
+    address public owner;
+    
+    modifier whenNotPaused&#40;&#41; &#123;
+        require&#40;&#33;paused, &quot;Contract is paused&quot;&#41;;
+        _;
+    &#125;
+    
+    modifier onlyOwner&#40;&#41; &#123;
+        require&#40;msg.sender &#61;&#61; owner, &quot;Not owner&quot;&#41;;
+        _;
+    &#125;
+    
+    function pause&#40;&#41; public onlyOwner &#123;
+        paused &#61; true;
+    &#125;
+    
+    function unpause&#40;&#41; public onlyOwner &#123;
+        paused &#61; false;
+    &#125;
+    
+    function normalFunction&#40;&#41; public whenNotPaused &#123;
+        // Only works when not paused
+    &#125;
+&#125;</code></pre>
+<h3 id="rate_limiting_pattern"><a href="#rate_limiting_pattern" class="header-anchor">Rate Limiting Pattern</a></h3>
+<p>Prevent spam or abuse:</p>
+<pre><code class="language-solidity">contract RateLimited &#123;
+    mapping&#40;address &#61;&gt; uint256&#41; public lastCallTime;
+    uint256 public cooldown &#61; 1 hours;
+    
+    modifier rateLimit&#40;&#41; &#123;
+        require&#40;
+            block.timestamp &gt;&#61; lastCallTime&#91;msg.sender&#93; &#43; cooldown,
+            &quot;Too soon&quot;
+        &#41;;
+        lastCallTime&#91;msg.sender&#93; &#61; block.timestamp;
+        _;
+    &#125;
+    
+    function limitedFunction&#40;&#41; public rateLimit &#123;
+        // Can only be called once per hour per address
+    &#125;
+&#125;</code></pre>
+<h2 id="quick_tips"><a href="#quick_tips" class="header-anchor">Quick Tips</a></h2>
+<ol>
+<li><p><strong>Always use the latest stable version</strong> - Older versions have known bugs</p>
+</li>
+<li><p><strong>Use SafeMath for versions &lt; 0.8.0</strong> - Newer versions have built-in overflow protection</p>
+</li>
+<li><p><strong>Prefer <code>uint256</code> over smaller uints</strong> - EVM works in 256-bit words anyway</p>
+</li>
+<li><p><strong>Use <code>calldata</code> for external function array parameters</strong> - Saves gas</p>
+</li>
+<li><p><strong>Emit events for important state changes</strong> - Makes your contract observable</p>
+</li>
+<li><p><strong>Test extensively</strong> - Bugs in production can&#39;t be fixed&#33;</p>
+</li>
+<li><p><strong>Keep functions simple</strong> - Easier to audit and less gas</p>
+</li>
+<li><p><strong>Mind the gas costs</strong> - Storage &gt; Memory &gt; Calldata</p>
+</li>
+</ol>
+<h2 id="common_gotchas"><a href="#common_gotchas" class="header-anchor">Common Gotchas</a></h2>
+<ul>
+<li><p><strong>Integer division truncates</strong>: <code>5 / 2 &#61; 2</code> &#40;not 2.5&#41;</p>
+</li>
+<li><p><strong>Default values</strong>: uninitialized <code>uint</code> is 0, <code>bool</code> is false, <code>address</code> is 0x0</p>
+</li>
+<li><p><strong>Array length is not free</strong>: <code>array.length</code> in a loop condition recalculates each iteration</p>
+</li>
+<li><p><strong>Sending Ether can fail</strong>: Always check the return value</p>
+</li>
+<li><p><strong>Block timestamp manipulation</strong>: Miners can manipulate timestamps slightly</p>
+</li>
+<li><p><strong>tx.origin vs msg.sender</strong>: Never use <code>tx.origin</code> for authorization</p>
+</li>
+</ul>
+<p>That should give you a solid foundation&#33; The key to good Solidity is understanding that every line costs money, so efficiency and security are paramount.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 27, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

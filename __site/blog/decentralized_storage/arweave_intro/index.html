@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+  
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Arweave vs Filecoin: Which Storage Solution for Your Smart Contract?</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="arweave_vs_filecoin_which_storage_solution_for_your_smart_contract"><a href="#arweave_vs_filecoin_which_storage_solution_for_your_smart_contract" class="header-anchor">Arweave vs Filecoin: Which Storage Solution for Your Smart Contract?</a></h1>
+<h2 id="a_quick_history_of_arweave"><a href="#a_quick_history_of_arweave" class="header-anchor">A Quick History of Arweave</a></h2>
+<p>Arweave was founded in 2017 by <strong>Sam Williams</strong> and <strong>William Jones</strong>, two PhD researchers from the University of Kent. They were frustrated with how ephemeral the web had become—links breaking, data disappearing, digital history being lost.</p>
+<p>Their big idea: what if you could pay once and store data forever? They launched the mainnet in <strong>June 2018</strong> with a novel &quot;blockweave&quot; structure instead of traditional blockchain.</p>
+<p><strong>Key milestones:</strong></p>
+<ul>
+<li><p><strong>2020</strong>: Raised \(8.3M, started gaining traction with NFT projects needing permanent storage
+- **2021**: Exploded during the NFT boom—projects realized minting on Ethereum but storing images on AWS was... ironic
+- **2022-2023**: Shifted focus to becoming infrastructure for the "permaweb"—permanent, decentralized applications
+- **Current state**: ~180 TB stored, thousands of dApps built on top, and growing as a Web3 storage standard
+
+**Yeah, only 180 TB!** For context, that's tiny compared to Filecoin's 12+ exabytes. But here's the thing: Arweave is storing data *forever*. That's a much higher bar than "store it for a contract period." Plus, the pay-once model means growth is naturally slower than a marketplace where you can rent cheap temporary storage.
+
+The small size is actually a feature in disguise—it means the network is still proving out the economics of permanent storage without collapsing under its own weight. If it scales successfully, that 180 TB becomes 180 PB, then 180 EB. But they're taking the "walk before you run" approach rather than claiming exabyte capacity before proving the model works long-term.
+
+**Wait, so is it expensive?**
+
+Actually, surprisingly affordable! As of recent pricing:
+- **~\)5-10 per GB** for permanent storage &#40;prices fluctuate with AR token value&#41;</p>
+</li>
+<li><p>That&#39;s roughly \(5,000-10,000 per TB stored forever
+
+Sounds pricey? Compare it to alternatives:
+- AWS S3: ~\)23/TB/month &#61; \(276/year = **\)5,520 over 20 years** &#40;and that&#39;s just 20 years, not forever&#41;</p>
+</li>
+<li><p>Google Cloud: Similar math, ~\(20/TB/month long-term
+
+So Arweave is actually **competitive** if you're thinking 20+ year horizons. For a 10 MB smart contract protocol bundle? That's like \)0.05-0.10 total. Pocket change.</p>
+</li>
+</ul>
+<p>The &quot;slow growth&quot; isn&#39;t because it&#39;s prohibitively expensive—it&#39;s because permanent storage is a newer use case. Most people still think in terms of monthly subscriptions, not &quot;pay once, keep forever.&quot;</p>
+<p>The team basically bet that Moore&#39;s Law for storage would make their audacious &quot;store forever&quot; promise economically viable. So far, they&#39;re winning that bet.</p>
+<h2 id="how_arweave_works"><a href="#how_arweave_works" class="header-anchor">How Arweave Works</a></h2>
+<p>Arweave is designed for <strong>permanent storage</strong>. You pay once upfront, and your data stays forever. Here&#39;s the key mechanism:</p>
+<ul>
+<li><p>Uses a <strong>blockweave</strong> structure &#40;not blockchain&#41; where each block links to a previous block <em>and</em> a random earlier block</p>
+</li>
+<li><p>Miners must prove they&#39;re storing random historical data to mine new blocks</p>
+</li>
+<li><p>Your one-time payment goes into an <strong>endowment</strong> that pays miners indefinitely as storage costs decrease over time</p>
+</li>
+<li><p>Think of it like a trust fund that pays for your storage forever</p>
+</li>
+</ul>
+<h2 id="for_your_smart_contract_use_case"><a href="#for_your_smart_contract_use_case" class="header-anchor">For Your Smart Contract Use Case</a></h2>
+<p>Storing experimental protocols on Arweave? <strong>Perfect fit.</strong> Here&#39;s why:</p>
+<ul>
+<li><p>Smart contract data &#40;protocols, configs, ABIs&#41; tends to be relatively small and needs to be reliably accessible</p>
+</li>
+<li><p>You want permanence—protocols shouldn&#39;t disappear</p>
+</li>
+<li><p>One payment, no recurring costs or renewal headaches</p>
+</li>
+<li><p>Integrates well with dApps through gateways</p>
+</li>
+</ul>
+<h2 id="comparison_table"><a href="#comparison_table" class="header-anchor">Comparison Table</a></h2>
+<table><tr><th align="right">Feature</th><th align="right">Arweave</th><th align="right">Filecoin</th></tr><tr><td align="right"><strong>Payment Model</strong></td><td align="right">One-time upfront payment</td><td align="right">Ongoing marketplace, periodic renewals</td></tr><tr><td align="right"><strong>Storage Duration</strong></td><td align="right">Permanent &#40;200&#43; years guarantee&#41;</td><td align="right">Contract-based &#40;you set duration&#41;</td></tr><tr><td align="right"><strong>Best For</strong></td><td align="right">Small-to-medium permanent data &#40;NFTs, protocols, archives&#41;</td><td align="right">Large dynamic data, backups, replaceable content</td></tr><tr><td align="right"><strong>Retrieval</strong></td><td align="right">Fast via gateways</td><td align="right">Variable &#40;depends on miner incentives&#41;</td></tr></table>
+<hr />
+<blockquote>
+<p><strong>What are gateways and why do they matter?</strong></p>
+<p>Think of gateways as the friendly translators between the Arweave network and the normal web. They&#39;re HTTP servers that fetch data from Arweave&#39;s peer-to-peer network and serve it to your browser or dApp like any regular website.</p>
+<p><strong>How they work:</strong></p>
+<ul>
+<li><p>You store data on Arweave, get back a transaction ID &#40;like <code>arweave.net/abc123...</code>&#41;</p>
+</li>
+<li><p>Gateways &#40;like <code>arweave.net</code>, <code>ar.io</code>, or custom ones&#41; translate that ID into a regular URL</p>
+</li>
+<li><p>Your dApp just makes a normal HTTP request: <code>https://arweave.net/abc123...</code></p>
+</li>
+<li><p>Gateway fetches it from the network, caches it, serves it to you instantly</p>
+</li>
+</ul>
+<p><strong>Why this is brilliant for dApps:</strong></p>
+<ul>
+<li><p>No special libraries needed—just fetch data like you would from any API</p>
+</li>
+<li><p>Fast CDN-like performance &#40;gateways cache popular content&#41;</p>
+</li>
+<li><p>Your smart contract can reference Arweave URLs, and any user can access them through any gateway</p>
+</li>
+<li><p>If one gateway goes down, use another—the data is still on Arweave</p>
+</li>
+</ul>
+<p>It&#39;s basically the difference between saying &quot;go download this torrent&quot; versus &quot;here&#39;s a normal link.&quot; Gateways make permanent storage feel like... normal storage. Your users never know they&#39;re accessing a decentralized network.</p>
+<p><strong>But wait, aren&#39;t gateways just... centralized servers?</strong></p>
+<p>Yep, you caught the irony&#33; Gateways <em>are</em> traditional servers, which feels weird for a decentralized system. But here&#39;s the key difference:</p>
+<p><strong>Gateways are disposable and interchangeable.</strong> If <code>arweave.net</code> disappears tomorrow, your data is fine—it&#39;s still on the Arweave network. You just point to a different gateway &#40;<code>ar.io</code>, <code>g8way.io</code>, or run your own&#41;. The gateway is just a convenience layer, not the source of truth.</p>
+<p>Think of it like email: Gmail is a centralized server, but your email isn&#39;t locked to Gmail. You can switch providers, run your own server, and the email protocol itself is decentralized. Same concept here.</p>
+<p>Anyone can run a gateway &#40;it&#39;s open-source&#41;, so you&#39;re not dependent on any single entity. Popular gateways stay up because they&#39;re monetized &#40;ads, subscriptions, or just community goodwill&#41;, but the underlying data isn&#39;t hostage to them.</p>
+<p>So yes, there&#39;s a centralization tradeoff for convenience. But it&#39;s <strong>optional</strong> centralization—power users can always interact directly with the network if they want true peer-to-peer access.</p>
+</blockquote>
+<p>| <strong>Cost Predictability</strong> | Fixed forever | Market-driven, fluctuates | | <strong>Integration</strong> | Simple, HTTP-based | More complex, requires deals with miners | | <strong>Redundancy</strong> | Automatic network-wide | Depends on replication factor you pay for | | <strong>Mutability</strong> | Immutable only | Can update/delete data |</p>
+<h2 id="handling_massive_scale_petaexabytes"><a href="#handling_massive_scale_petaexabytes" class="header-anchor">Handling Massive Scale &#40;Peta/Exabytes&#41;</a></h2>
+<p><strong>Arweave&#39;s approach:</strong></p>
+<ul>
+<li><p>Relies on <strong>storage cost deflation</strong> &#40;Moore&#39;s Law for storage&#41;</p>
+</li>
+<li><p>As storage gets cheaper, the endowment covers more over time</p>
+</li>
+<li><p>Miners only need to store a subset of data &#40;uses &quot;wildfire&quot; network to retrieve missing pieces&#41;</p>
+</li>
+<li><p>Currently ~180 TB stored, targeting infinite growth as hardware improves</p>
+</li>
+</ul>
+<p><strong>Filecoin&#39;s approach:</strong></p>
+<ul>
+<li><p><strong>Market-based scaling</strong>: more demand &#61; more miners &#61; more capacity</p>
+</li>
+<li><p>Uses <strong>proof-of-spacetime</strong> to verify miners are continuously storing data</p>
+</li>
+<li><p>Can leverage existing datacenters and cloud storage</p>
+</li>
+<li><p>Currently ~12 EiB&#43; capacity with room to scale massively</p>
+</li>
+</ul>
+<p><strong>The reality check:</strong> Neither has truly proven exabyte-scale yet. Filecoin has more raw capacity <em>today</em> because it&#39;s designed for large-scale storage from day one. Arweave bets on future hardware making permanent storage feasible.</p>
+<h2 id="bottom_line_for_your_project"><a href="#bottom_line_for_your_project" class="header-anchor">Bottom Line for Your Project</a></h2>
+<p><strong>Use Arweave if:</strong></p>
+<ul>
+<li><p>Your protocols are &lt; ~100 GB total</p>
+</li>
+<li><p>You want set-it-and-forget-it permanence</p>
+</li>
+<li><p>You prefer simple integration</p>
+</li>
+<li><p>Cost predictability matters</p>
+</li>
+</ul>
+<p><strong>Use Filecoin if:</strong></p>
+<ul>
+<li><p>You&#39;re storing massive datasets &#40;TB to PB&#41;</p>
+</li>
+<li><p>You need flexibility to update/delete</p>
+</li>
+<li><p>You want competitive pricing through market dynamics</p>
+</li>
+<li><p>You&#39;re okay with managing storage deals</p>
+</li>
+</ul>
+<p>For experimental smart contract protocols specifically, I&#39;d lean toward <strong>Arweave</strong> for the simplicity and permanence, unless you&#39;re storing huge datasets or need mutability.</p>
+<hr />
+<blockquote>
+<p><strong>Wait, do nodes store the entire chain?</strong></p>
+<p>Nope&#33; And that&#39;s actually the genius of it. Each miner only stores a portion of the network&#39;s data—think of it like BitTorrent on steroids. When they want to mine a block, they have to prove they&#39;re storing some random chunk of historical data. </p>
+<p>The network collectively ensures everything is stored, but no single node needs the whole thing. As the network grows, individual miners can store smaller percentages while the total redundancy stays high.</p>
+<p><strong>Is this a downside?</strong> Not really, it&#39;s the only way permanent storage scales. If every node needed <em>everything</em>, the system would collapse under its own weight as data accumulates. The tradeoff is you&#39;re trusting the economic incentives keep enough miners storing each piece. So far, it works—the redundancy is actually quite high &#40;typically 50-100&#43; copies of each piece exist across the network&#41;.</p>
+<p>It&#39;s kind of like how the internet doesn&#39;t have one server with all the websites—distributed is actually more resilient than centralized, as long as the economics work.</p>
+<p><strong>But wait, couldn&#39;t someone spam the network with junk?</strong></p>
+<p>Good instinct&#33; This is where economics saves the day. To store data on Arweave, you pay upfront based on data size. The cost is calibrated so that spamming becomes <em>really expensive</em> for an attacker but reasonable for legitimate users.</p>
+<p>Want to flood it with a petabyte of garbage? That&#39;ll cost you millions of dollars. And here&#39;s the kicker: you&#39;re actually <em>funding</em> the network by doing so—your payment goes into the endowment that pays miners forever, making them <em>more</em> profitable and attracting more storage capacity.</p>
+<p>The attack essentially becomes: &quot;I&#39;m going to vandalize your system by making it stronger and giving it more money.&quot; Not exactly a winning strategy for the attacker.</p>
+<p>Nodes also don&#39;t become inefficient because they only store their portion—if the network doubles in size, individual nodes don&#39;t suddenly need to do double the work. They just store their same percentage. The network scales horizontally.</p>
+<p><strong>Do early miners get rewarded more as the network grows?</strong></p>
+<p>Yes, actually&#33; Early miners have a significant advantage. Here&#39;s why:</p>
+<p>When you&#39;re an early miner, you&#39;re storing data when there&#39;s <em>less</em> total data in the network. This means:</p>
+<ul>
+<li><p>You can store a larger <em>percentage</em> of the network with the same hardware</p>
+</li>
+<li><p>More recall blocks &#40;those random historical blocks&#41; point to data you have</p>
+</li>
+<li><p>Higher chance of mining new blocks &#61; more rewards</p>
+</li>
+</ul>
+<p>As the network grows and new miners join, they&#39;re competing to store portions of a much larger dataset. Early miners who stuck around have built up a valuable position—kind of like owning real estate in a neighborhood before it became popular.</p>
+<p>There&#39;s also the AR token angle: early miners earned AR tokens when they were cheap. If Arweave gains market share and AR appreciates, those early tokens become more valuable. Classic early adopter advantage.</p>
+<p>That said, the system tries to stay fair—new miners can still be profitable, they just don&#39;t have the compounding advantage of being there from day one.</p>
+</blockquote>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 29, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+  </body>
+</html>

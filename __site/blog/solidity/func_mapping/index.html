@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Solidity Functions & Mappings: A Practical Guide</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="solidity_functions_mappings_a_practical_guide"><a href="#solidity_functions_mappings_a_practical_guide" class="header-anchor">Solidity Functions &amp; Mappings: A Practical Guide</a></h1>
+<h2 id="functions"><a href="#functions" class="header-anchor">Functions</a></h2>
+<h3 id="basic_syntax"><a href="#basic_syntax" class="header-anchor">Basic Syntax</a></h3>
+<pre><code class="language-solidity">function functionName&#40;paramType paramName&#41; visibility mutability returns &#40;returnType&#41; &#123;
+    // function body
+&#125;</code></pre>
+<h3 id="visibility_modifiers"><a href="#visibility_modifiers" class="header-anchor">Visibility Modifiers</a></h3>
+<ul>
+<li><p><strong><code>public</code></strong> - Anyone can call &#40;internally or externally&#41;</p>
+</li>
+<li><p><strong><code>external</code></strong> - Only callable from outside the contract</p>
+</li>
+<li><p><strong><code>internal</code></strong> - Only callable within contract and derived contracts</p>
+</li>
+<li><p><strong><code>private</code></strong> - Only callable within this contract</p>
+</li>
+</ul>
+<h3 id="state_mutability_modifiers"><a href="#state_mutability_modifiers" class="header-anchor">State Mutability Modifiers</a></h3>
+<ul>
+<li><p><strong><code>view</code></strong> - Reads state but doesn&#39;t modify it</p>
+</li>
+<li><p><strong><code>pure</code></strong> - Doesn&#39;t read or modify state</p>
+</li>
+<li><p><strong><code>payable</code></strong> - Can receive Ether</p>
+</li>
+<li><p><em>&#40;no modifier&#41;</em> - Can read and write state</p>
+</li>
+</ul>
+<h3 id="the_memory_question"><a href="#the_memory_question" class="header-anchor">The Memory Question</a></h3>
+<p><strong>Why declare <code>memory</code> for function arguments?</strong></p>
+<pre><code class="language-solidity">function process&#40;string memory name&#41; public &#123; &#125;</code></pre>
+<p>Solidity has different data locations:</p>
+<ul>
+<li><p><strong><code>storage</code></strong> - Persistent, stored on blockchain &#40;expensive&#41;</p>
+</li>
+<li><p><strong><code>memory</code></strong> - Temporary, exists during function execution &#40;cheaper&#41;</p>
+</li>
+<li><p><strong><code>calldata</code></strong> - Like memory, but immutable and only for external function parameters &#40;cheapest&#41;</p>
+</li>
+</ul>
+<p>For <strong>reference types</strong> &#40;arrays, structs, strings&#41;, you <em>must</em> specify location:</p>
+<pre><code class="language-solidity">function good&#40;string memory str&#41; public &#123; &#125;     // ✓ Required
+function bad&#40;string str&#41; public &#123; &#125;             // ✗ Won&#39;t compile
+function better&#40;string calldata str&#41; external &#123; &#125; // ✓ More gas efficient</code></pre>
+<p>For <strong>value types</strong> &#40;uint, bool, address&#41;, no location needed—they&#39;re always copied:</p>
+<pre><code class="language-solidity">function example&#40;uint256 number&#41; public &#123; &#125;  // No memory needed</code></pre>
+<p><strong>Rule of thumb</strong>: Use <code>calldata</code> for external function parameters &#40;saves gas&#41;, <code>memory</code> for internal processing.</p>
+<h3 id="does_view_always_follow_returns"><a href="#does_view_always_follow_returns" class="header-anchor">Does <code>view</code> Always Follow <code>returns</code>?</a></h3>
+<p><strong>No&#33;</strong> The order is flexible:</p>
+<pre><code class="language-solidity">// Both are valid
+function getBalance&#40;&#41; public view returns &#40;uint256&#41; &#123; &#125;
+function getBalance&#40;&#41; view public returns &#40;uint256&#41; &#123; &#125;
+
+// Common patterns
+function calculate&#40;&#41; external pure returns &#40;uint256&#41; &#123; &#125;
+function getData&#40;&#41; internal view returns &#40;string memory&#41; &#123; &#125;</code></pre>
+<p><strong>Convention</strong>: Most devs write <code>visibility</code> then <code>mutability</code> then <code>returns</code>, but Solidity doesn&#39;t enforce this.</p>
+<blockquote>
+<p><strong>Do you need <code>returns&#40;type&#41;</code> when using <code>view</code>?</strong></p>
+<p><strong>Nope&#33;</strong> <code>view</code> just means &quot;I&#39;m only reading, not writing.&quot; Whether you actually return something is separate.</p>
+</blockquote>
+<pre><code class="language-solidity">&gt; // view WITH returns - reading and giving back data
+&gt; function getBalance&#40;&#41; public view returns &#40;uint256&#41; &#123;
+&gt;     return balance;
+&gt; &#125;
+&gt; 
+&gt; // view WITHOUT returns - just reading to check something
+&gt; function checkBalance&#40;&#41; public view &#123;
+&gt;     require&#40;balance &gt; 100, &quot;Balance too low&quot;&#41;;
+&gt;     // Does something but doesn&#39;t return anything
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>Think of it like this:</p>
+<ul>
+<li><p><code>view</code> &#61; &quot;I promise I&#39;m just looking, not touching&quot;</p>
+</li>
+<li><p><code>returns&#40;type&#41;</code> &#61; &quot;I&#39;m giving you something back&quot;</p>
+</li>
+</ul>
+<p>You can look without giving something back. You can also give something back while modifying things &#40;no <code>view</code>&#41;. They&#39;re independent choices&#33;</p>
+</blockquote>
+<h3 id="return_values"><a href="#return_values" class="header-anchor">Return Values</a></h3>
+<pre><code class="language-solidity">// Named returns &#40;automatically creates variable&#41;
+function divide&#40;uint256 a, uint256 b&#41; public pure returns &#40;uint256 result&#41; &#123;
+    result &#61; a / b;  // Implicitly returned
+&#125;
+
+// Explicit returns
+function divide&#40;uint256 a, uint256 b&#41; public pure returns &#40;uint256&#41; &#123;
+    return a / b;
+&#125;
+
+// Multiple returns
+function getStats&#40;&#41; public view returns &#40;uint256 balance, address owner&#41; &#123;
+    balance &#61; address&#40;this&#41;.balance;
+    owner &#61; msg.sender;
+&#125;</code></pre>
+<h2 id="mappings"><a href="#mappings" class="header-anchor">Mappings</a></h2>
+<h3 id="basic_syntax__2"><a href="#basic_syntax__2" class="header-anchor">Basic Syntax</a></h3>
+<pre><code class="language-solidity">mapping&#40;keyType &#61;&gt; valueType&#41; visibility variableName;</code></pre>
+<h3 id="are_mappings_state_variables"><a href="#are_mappings_state_variables" class="header-anchor">Are Mappings State Variables?</a></h3>
+<p><strong>Yes&#33;</strong> Mappings are <em>always</em> state variables stored in storage:</p>
+<pre><code class="language-solidity">contract MyContract &#123;
+    mapping&#40;address &#61;&gt; uint256&#41; public balances;  // State variable in storage
+    
+    function localMapping&#40;&#41; public &#123;
+        mapping&#40;address &#61;&gt; uint256&#41; temp;  // ✗ Not allowed&#33; Can&#39;t be local
+    &#125;
+&#125;</code></pre>
+<p><strong>Key points</strong>:</p>
+<ul>
+<li><p>Mappings exist only in <code>storage</code></p>
+</li>
+<li><p>You can&#39;t have mappings in <code>memory</code></p>
+</li>
+<li><p>They&#39;re not iterable &#40;no way to list all keys&#41;</p>
+</li>
+<li><p>All possible keys exist, returning default value &#40;0, false, etc.&#41; if not set</p>
+</li>
+</ul>
+<h3 id="basic_usage"><a href="#basic_usage" class="header-anchor">Basic Usage</a></h3>
+<pre><code class="language-solidity">contract SimpleBank &#123;
+    mapping&#40;address &#61;&gt; uint256&#41; public balances;
+    
+    function deposit&#40;&#41; public payable &#123;
+        balances&#91;msg.sender&#93; &#43;&#61; msg.value;
+    &#125;
+    
+    function getBalance&#40;&#41; public view returns &#40;uint256&#41; &#123;
+        return balances&#91;msg.sender&#93;;  // Returns 0 if never set
+    &#125;
+&#125;</code></pre>
+<h3 id="nested_mappings"><a href="#nested_mappings" class="header-anchor">Nested Mappings</a></h3>
+<p><strong>Syntax</strong>: <code>mapping&#40;keyType1 &#61;&gt; mapping&#40;keyType2 &#61;&gt; valueType&#41;&#41;</code></p>
+<p>Think of it as a 2D lookup table or a &quot;mapping of mappings.&quot;</p>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; mapping&#40;address &#61;&gt; uint256&#41;&#41; public allowances;
+//      owner    &#61;&gt;        spender   &#61;&gt; amount</code></pre>
+<h3 id="use_cases_for_nested_mappings"><a href="#use_cases_for_nested_mappings" class="header-anchor">Use Cases for Nested Mappings</a></h3>
+<h4 id="token_allowances_erc-20_standard"><a href="#token_allowances_erc-20_standard" class="header-anchor"><ol>
+<li><p><strong>Token Allowances &#40;ERC-20 Standard&#41;</strong></p>
+</li>
+</ol>
+</a></h4>
+<pre><code class="language-solidity">// Owner approves spender to use their tokens
+mapping&#40;address &#61;&gt; mapping&#40;address &#61;&gt; uint256&#41;&#41; public allowances;
+
+function approve&#40;address spender, uint256 amount&#41; public &#123;
+    allowances&#91;msg.sender&#93;&#91;spender&#93; &#61; amount;
+&#125;
+
+function transferFrom&#40;address owner, address recipient, uint256 amount&#41; public &#123;
+    require&#40;allowances&#91;owner&#93;&#91;msg.sender&#93; &gt;&#61; amount, &quot;Not approved&quot;&#41;;
+    allowances&#91;owner&#93;&#91;msg.sender&#93; -&#61; amount;
+    // ... transfer logic
+&#125;</code></pre>
+<p><strong>Translation</strong>: &quot;How much can <code>spender</code> spend on behalf of <code>owner</code>?&quot;</p>
+<h4 id="ol_start2_multi-signature_approvals"><a href="#ol_start2_multi-signature_approvals" class="header-anchor"><ol start="2">
+<li><p><strong>Multi-Signature Approvals</strong></p>
+</li>
+</ol>
+</a></h4>
+<pre><code class="language-solidity">mapping&#40;uint256 &#61;&gt; mapping&#40;address &#61;&gt; bool&#41;&#41; public hasApproved;
+//      txId    &#61;&gt;        approver &#61;&gt; approved?
+
+function approveTransaction&#40;uint256 txId&#41; public &#123;
+    hasApproved&#91;txId&#93;&#91;msg.sender&#93; &#61; true;
+&#125;</code></pre>
+<p><strong>Translation</strong>: &quot;Has <code>address</code> approved transaction <code>txId</code>?&quot;</p>
+<h4 id="ol_start3_access_control_systems"><a href="#ol_start3_access_control_systems" class="header-anchor"><ol start="3">
+<li><p><strong>Access Control Systems</strong></p>
+</li>
+</ol>
+</a></h4>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; mapping&#40;bytes32 &#61;&gt; bool&#41;&#41; public roles;
+//      account &#61;&gt;        role    &#61;&gt; hasRole
+
+function grantRole&#40;address account, bytes32 role&#41; public &#123;
+    roles&#91;account&#93;&#91;role&#93; &#61; true;
+&#125;
+
+function hasRole&#40;address account, bytes32 role&#41; public view returns &#40;bool&#41; &#123;
+    return roles&#91;account&#93;&#91;role&#93;;
+&#125;</code></pre>
+<p><strong>Translation</strong>: &quot;Does <code>account</code> have <code>role</code>?&quot;</p>
+<h4 id="ol_start4_gamingnft_metadata"><a href="#ol_start4_gamingnft_metadata" class="header-anchor"><ol start="4">
+<li><p><strong>Gaming/NFT Metadata</strong></p>
+</li>
+</ol>
+</a></h4>
+<pre><code class="language-solidity">mapping&#40;uint256 &#61;&gt; mapping&#40;string &#61;&gt; uint256&#41;&#41; public nftAttributes;
+//      tokenId &#61;&gt;        attribute &#61;&gt; value
+
+nftAttributes&#91;1&#93;&#91;&quot;strength&quot;&#93; &#61; 85;
+nftAttributes&#91;1&#93;&#91;&quot;speed&quot;&#93; &#61; 60;</code></pre>
+<p><strong>Translation</strong>: &quot;What&#39;s the <code>attribute</code> value for <code>tokenId</code>?&quot;</p>
+<h3 id="triple_nested_mappings"><a href="#triple_nested_mappings" class="header-anchor">Triple Nested Mappings</a></h3>
+<p><strong>Yes, they exist&#33;</strong> Though less common:</p>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; mapping&#40;uint256 &#61;&gt; mapping&#40;address &#61;&gt; bool&#41;&#41;&#41; public permissions;
+//      owner   &#61;&gt;        tokenId &#61;&gt;        operator &#61;&gt; canOperate
+
+// Use case: NFT operator approvals per token
+function approveForToken&#40;uint256 tokenId, address operator&#41; public &#123;
+    permissions&#91;msg.sender&#93;&#91;tokenId&#93;&#91;operator&#93; &#61; true;
+&#125;</code></pre>
+<h3 id="important_mapping_limitations"><a href="#important_mapping_limitations" class="header-anchor">Important Mapping Limitations</a></h3>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; uint256&#41; public balances;
+
+// ✗ Can&#39;t iterate
+for &#40;address user in balances&#41; &#123; &#125;  // Not possible
+
+// ✗ Can&#39;t get length
+uint256 count &#61; balances.length;  // Not possible
+
+// ✗ Can&#39;t delete entire mapping
+delete balances;  // Not possible
+
+// ✓ Can delete individual keys
+delete balances&#91;someAddress&#93;;  // Sets to 0</code></pre>
+<p><strong>Workaround</strong>: Keep a separate array of keys if you need iteration:</p>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; uint256&#41; public balances;
+address&#91;&#93; public users;
+
+function addBalance&#40;address user, uint256 amount&#41; public &#123;
+    if &#40;balances&#91;user&#93; &#61;&#61; 0&#41; &#123;
+        users.push&#40;user&#41;;  // Track new users
+    &#125;
+    balances&#91;user&#93; &#43;&#61; amount;
+&#125;</code></pre>
+<h2 id="quick_reference"><a href="#quick_reference" class="header-anchor">Quick Reference</a></h2>
+<h3 id="function_patterns"><a href="#function_patterns" class="header-anchor">Function Patterns</a></h3>
+<pre><code class="language-solidity">// Read-only, external
+function getName&#40;&#41; external view returns &#40;string memory&#41; &#123; &#125;
+
+// State changing, public
+function setName&#40;string calldata newName&#41; public &#123; &#125;
+
+// Payment receiving
+function deposit&#40;&#41; external payable &#123; &#125;
+
+// Pure calculation
+function add&#40;uint256 a, uint256 b&#41; external pure returns &#40;uint256&#41; &#123; &#125;</code></pre>
+<h3 id="mapping_patterns"><a href="#mapping_patterns" class="header-anchor">Mapping Patterns</a></h3>
+<pre><code class="language-solidity">// Simple lookup
+mapping&#40;address &#61;&gt; uint256&#41; public balance;
+
+// Two-dimensional lookup
+mapping&#40;address &#61;&gt; mapping&#40;address &#61;&gt; uint256&#41;&#41; public allowance;
+
+// Complex value type
+mapping&#40;address &#61;&gt; User&#41; public users;
+
+struct User &#123;
+    string name;
+    uint256 balance;
+    bool isActive;
+&#125;</code></pre>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 28, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

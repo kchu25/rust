@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>DAO Security & Implementation: Code, Attacks, and Defense</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="dao_security_implementation_code_attacks_and_defense"><a href="#dao_security_implementation_code_attacks_and_defense" class="header-anchor">DAO Security &amp; Implementation: Code, Attacks, and Defense</a></h1>
+<p>DAOs aren&#39;t magic trust machines—they&#39;re carefully engineered systems using economic incentives, cryptography, and game theory to align behavior. Let&#39;s look at how they&#39;re actually built and secured.</p>
+<h2 id="what_the_code_looks_like"><a href="#what_the_code_looks_like" class="header-anchor">What the Code Looks Like</a></h2>
+<p>DAOs are built with <strong>smart contracts</strong>—code that runs on the blockchain. Here&#39;s what the basic building blocks look like &#40;written in Solidity, Ethereum&#39;s programming language&#41;:</p>
+<h3 id="simple_treasury_contract"><a href="#simple_treasury_contract" class="header-anchor"><ol>
+<li><p>Simple Treasury Contract</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-solidity">contract DAOTreasury &#123;
+    address&#91;&#93; public members;
+    uint public requiredSignatures &#61; 3;
+    
+    struct Transaction &#123;
+        address to;
+        uint amount;
+        uint approvals;
+        mapping&#40;address &#61;&gt; bool&#41; hasApproved;
+        bool executed;
+    &#125;
+    
+    Transaction&#91;&#93; public transactions;
+    
+    // Propose sending money
+    function propose&#40;address _to, uint _amount&#41; public &#123;
+        Transaction memory newTx;
+        newTx.to &#61; _to;
+        newTx.amount &#61; _amount;
+        transactions.push&#40;newTx&#41;;
+    &#125;
+    
+    // Approve a transaction
+    function approve&#40;uint txIndex&#41; public &#123;
+        Transaction storage tx &#61; transactions&#91;txIndex&#93;;
+        require&#40;&#33;tx.hasApproved&#91;msg.sender&#93;, &quot;Already approved&quot;&#41;;
+        
+        tx.hasApproved&#91;msg.sender&#93; &#61; true;
+        tx.approvals&#43;&#43;;
+        
+        // If enough approvals, execute automatically
+        if &#40;tx.approvals &gt;&#61; requiredSignatures &amp;&amp; &#33;tx.executed&#41; &#123;
+            tx.executed &#61; true;
+            payable&#40;tx.to&#41;.transfer&#40;tx.amount&#41;;
+        &#125;
+    &#125;
+&#125;</code></pre>
+<p>This contract holds money and only releases it when enough members approve. Notice how it&#39;s all automatic—no human intermediary needed.</p>
+<h3 id="ol_start2_staking_contract"><a href="#ol_start2_staking_contract" class="header-anchor"><ol start="2">
+<li><p>Staking Contract</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-solidity">contract Staking &#123;
+    mapping&#40;address &#61;&gt; uint&#41; public stakes;
+    mapping&#40;address &#61;&gt; uint&#41; public reputation;
+    
+    // User deposits tokens to participate
+    function stake&#40;uint amount&#41; public &#123;
+        require&#40;amount &gt;&#61; 1000, &quot;Minimum stake is 1000 tokens&quot;&#41;;
+        stakes&#91;msg.sender&#93; &#43;&#61; amount;
+        // Transfer tokens from user to contract
+        token.transferFrom&#40;msg.sender, address&#40;this&#41;, amount&#41;;
+    &#125;
+    
+    // Submit work &#40;e.g., validation results&#41;
+    function submitWork&#40;string memory resultsHash&#41; public &#123;
+        require&#40;stakes&#91;msg.sender&#93; &gt;&#61; 1000, &quot;Need to stake first&quot;&#41;;
+        // Process work...
+        // If work is good, increase reputation
+        reputation&#91;msg.sender&#93;&#43;&#43;;
+    &#125;
+    
+    // Penalize bad actors
+    function slash&#40;address badActor, uint amount&#41; public onlyAdmin &#123;
+        require&#40;stakes&#91;badActor&#93; &gt;&#61; amount, &quot;Not enough staked&quot;&#41;;
+        stakes&#91;badActor&#93; -&#61; amount;
+        // Slashed tokens go to treasury
+    &#125;
+&#125;</code></pre>
+<p>This ensures people have &quot;skin in the game&quot;—they lose money if they submit bad work.</p>
+<h3 id="ol_start3_voting_contract"><a href="#ol_start3_voting_contract" class="header-anchor"><ol start="3">
+<li><p>Voting Contract</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-solidity">contract Governance &#123;
+    struct Proposal &#123;
+        string description;
+        uint votesFor;
+        uint votesAgainst;
+        uint deadline;
+        bool executed;
+        mapping&#40;address &#61;&gt; bool&#41; hasVoted;
+    &#125;
+    
+    Proposal&#91;&#93; public proposals;
+    
+    // Create a new proposal
+    function propose&#40;string memory description&#41; public &#123;
+        Proposal memory newProp;
+        newProp.description &#61; description;
+        newProp.deadline &#61; block.timestamp &#43; 7 days;
+        proposals.push&#40;newProp&#41;;
+    &#125;
+    
+    // Vote on a proposal
+    function vote&#40;uint proposalId, bool support&#41; public &#123;
+        Proposal storage prop &#61; proposals&#91;proposalId&#93;;
+        require&#40;block.timestamp &lt; prop.deadline, &quot;Voting ended&quot;&#41;;
+        require&#40;&#33;prop.hasVoted&#91;msg.sender&#93;, &quot;Already voted&quot;&#41;;
+        
+        uint voterTokens &#61; token.balanceOf&#40;msg.sender&#41;;
+        require&#40;voterTokens &gt; 0, &quot;Need tokens to vote&quot;&#41;;
+        
+        prop.hasVoted&#91;msg.sender&#93; &#61; true;
+        
+        if &#40;support&#41; &#123;
+            prop.votesFor &#43;&#61; voterTokens;
+        &#125; else &#123;
+            prop.votesAgainst &#43;&#61; voterTokens;
+        &#125;
+    &#125;
+    
+    // Execute if passed
+    function execute&#40;uint proposalId&#41; public &#123;
+        Proposal storage prop &#61; proposals&#91;proposalId&#93;;
+        require&#40;block.timestamp &gt;&#61; prop.deadline, &quot;Voting still open&quot;&#41;;
+        require&#40;&#33;prop.executed, &quot;Already executed&quot;&#41;;
+        require&#40;prop.votesFor &gt; prop.votesAgainst, &quot;Proposal failed&quot;&#41;;
+        
+        prop.executed &#61; true;
+        // Execute the proposal action here
+    &#125;
+&#125;</code></pre>
+<p>More tokens &#61; more voting power. When a proposal passes, the code automatically executes it.</p>
+<h3 id="ol_start4_simple_bounty_contract"><a href="#ol_start4_simple_bounty_contract" class="header-anchor"><ol start="4">
+<li><p>Simple Bounty Contract</p>
+</li>
+</ol>
+</a></h3>
+<pre><code class="language-solidity">contract Bounty &#123;
+    struct Task &#123;
+        string description;
+        uint reward;
+        address claimer;
+        bool completed;
+    &#125;
+    
+    Task&#91;&#93; public tasks;
+    
+    // Create a bounty
+    function createBounty&#40;string memory desc, uint reward&#41; public payable &#123;
+        require&#40;msg.value &gt;&#61; reward, &quot;Must fund the bounty&quot;&#41;;
+        tasks.push&#40;Task&#40;desc, reward, address&#40;0&#41;, false&#41;&#41;;
+    &#125;
+    
+    // Claim a bounty
+    function claimBounty&#40;uint taskId&#41; public &#123;
+        Task storage task &#61; tasks&#91;taskId&#93;;
+        require&#40;task.claimer &#61;&#61; address&#40;0&#41;, &quot;Already claimed&quot;&#41;;
+        task.claimer &#61; msg.sender;
+    &#125;
+    
+    // Submit work and get paid
+    function submitWork&#40;uint taskId, string memory proof&#41; public &#123;
+        Task storage task &#61; tasks&#91;taskId&#93;;
+        require&#40;task.claimer &#61;&#61; msg.sender, &quot;You didn&#39;t claim this&quot;&#41;;
+        require&#40;&#33;task.completed, &quot;Already completed&quot;&#41;;
+        
+        // In reality, you&#39;d verify the work here
+        // For now, we&#39;ll just pay out
+        task.completed &#61; true;
+        payable&#40;msg.sender&#41;.transfer&#40;task.reward&#41;;
+    &#125;
+&#125;</code></pre>
+<p>Someone funds a task, someone else completes it, and the payment happens automatically.</p>
+<h2 id="the_key_insight"><a href="#the_key_insight" class="header-anchor">The Key Insight</a></h2>
+<p>Notice how none of this code has a &quot;CEO approval&quot; step or &quot;admin must process payment&quot; function. Once deployed, these contracts run on their own. The rules are set in code, and everyone can see exactly how decisions get made and money moves. That&#39;s what makes it &quot;autonomous&quot;—it doesn&#39;t need constant human intervention to operate.</p>
+<hr />
+<h2 id="defending_against_bad_actors_a_major_problem"><a href="#defending_against_bad_actors_a_major_problem" class="header-anchor">Defending Against Bad Actors &#40;A Major Problem&#41;</a></h2>
+<p>This is absolutely a known problem, and it&#39;s one of the biggest challenges in DAO design. Here are the main defense mechanisms:</p>
+<h3 id="economic_incentives_skin_in_the_game"><a href="#economic_incentives_skin_in_the_game" class="header-anchor"><ol>
+<li><p>Economic Incentives &#40;Skin in the Game&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: What stops someone from submitting fake data or low-quality work?</p>
+<p><strong>The Solution</strong>: Make them risk their own money.</p>
+<pre><code class="language-solidity">// Before you can participate, deposit collateral
+function stake&#40;uint amount&#41; public &#123;
+    require&#40;amount &gt;&#61; 10000, &quot;Minimum stake required&quot;&#41;;
+    stakes&#91;msg.sender&#93; &#61; amount;
+    token.transferFrom&#40;msg.sender, address&#40;this&#41;, amount&#41;;
+&#125;
+
+// If your work is rejected, you lose your stake
+function rejectWork&#40;address validator, uint taskId&#41; public onlyVerifier &#123;
+    uint stakedAmount &#61; stakes&#91;validator&#93;;
+    stakes&#91;validator&#93; &#61; 0; // Slash their entire stake
+    treasury &#43;&#61; stakedAmount; // Goes to treasury or good validators
+&#125;</code></pre>
+<p>If submitting fake data costs you \(10,000 but the reward is only \)5,000, you won&#39;t do it. The key is making <strong>bad behavior more expensive than honest behavior is profitable</strong>.</p>
+<h3 id="ol_start2_reputation_systems_long-term_consequences"><a href="#ol_start2_reputation_systems_long-term_consequences" class="header-anchor"><ol start="2">
+<li><p>Reputation Systems &#40;Long-term Consequences&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: Anonymous attackers can keep creating new accounts.</p>
+<p><strong>The Solution</strong>: Soul-bound tokens &#40;reputation that can&#39;t be transferred or sold&#41;.</p>
+<pre><code class="language-solidity">contract Reputation &#123;
+    // These tokens are &quot;soul-bound&quot; - locked to an address
+    mapping&#40;address &#61;&gt; uint&#41; public reputationScore;
+    
+    function increaseReputation&#40;address validator&#41; public onlyContract &#123;
+        reputationScore&#91;validator&#93; &#43;&#61; 10;
+    &#125;
+    
+    function decreaseReputation&#40;address validator&#41; public onlyContract &#123;
+        reputationScore&#91;validator&#93; -&#61; 50; // Penalties are bigger than rewards
+    &#125;
+    
+    // Higher reputation &#61; higher pay and priority
+    function calculateReward&#40;address validator, uint baseReward&#41; public view returns &#40;uint&#41; &#123;
+        uint rep &#61; reputationScore&#91;validator&#93;;
+        if &#40;rep &gt; 1000&#41; return baseReward * 2;
+        if &#40;rep &gt; 500&#41; return baseReward * 15 / 10;
+        return baseReward;
+    &#125;
+&#125;</code></pre>
+<p>Build up reputation over months? You won&#39;t throw it away for a quick scam. This creates <strong>long-term alignment</strong>—good actors accumulate reputation worth more than any single attack.</p>
+<h3 id="ol_start3_multiple_validators_consensus_mechanisms"><a href="#ol_start3_multiple_validators_consensus_mechanisms" class="header-anchor"><ol start="3">
+<li><p>Multiple Validators &#40;Consensus Mechanisms&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: One malicious validator could submit fake results.</p>
+<p><strong>The Solution</strong>: Require multiple independent validators to agree.</p>
+<pre><code class="language-solidity">contract ConsensusValidation &#123;
+    struct ValidationTask &#123;
+        string dataHash;
+        mapping&#40;address &#61;&gt; string&#41; submissions;
+        address&#91;&#93; validators;
+        uint requiredConsensus; // e.g., 3 out of 5 must agree
+    &#125;
+    
+    function submitResult&#40;uint taskId, string memory result&#41; public &#123;
+        ValidationTask storage task &#61; tasks&#91;taskId&#93;;
+        task.submissions&#91;msg.sender&#93; &#61; result;
+        task.validators.push&#40;msg.sender&#41;;
+        
+        // Check for consensus
+        if &#40;hasConsensus&#40;taskId&#41;&#41; &#123;
+            // Pay everyone who agreed with majority
+            payValidators&#40;taskId&#41;;
+        &#125;
+    &#125;
+    
+    function hasConsensus&#40;uint taskId&#41; internal view returns &#40;bool&#41; &#123;
+        // Count how many validators submitted the same result
+        // If 3&#43; out of 5 agree, that&#39;s consensus
+        // &#40;Simplified - real implementation more complex&#41;
+    &#125;
+&#125;</code></pre>
+<p>For someone to cheat, they&#39;d need to <strong>control multiple independent validators</strong>, which is expensive. This is like how Bitcoin requires 51&#37; of mining power to attack—it&#39;s theoretically possible but economically irrational.</p>
+<h3 id="ol_start4_time_locks_and_delays_gives_time_to_react"><a href="#ol_start4_time_locks_and_delays_gives_time_to_react" class="header-anchor"><ol start="4">
+<li><p>Time Locks and Delays &#40;Gives Time to React&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: Malicious proposal passes and drains treasury immediately.</p>
+<p><strong>The Solution</strong>: Add delays so the community can react.</p>
+<pre><code class="language-solidity">contract Governance &#123;
+    uint public constant EXECUTION_DELAY &#61; 2 days;
+    
+    function execute&#40;uint proposalId&#41; public &#123;
+        Proposal storage prop &#61; proposals&#91;proposalId&#93;;
+        require&#40;prop.votesFor &gt; prop.votesAgainst, &quot;Failed vote&quot;&#41;;
+        require&#40;block.timestamp &gt;&#61; prop.passedAt &#43; EXECUTION_DELAY, &quot;Still in delay period&quot;&#41;;
+        
+        // During the delay, people can:
+        // - Exit the DAO &#40;withdraw their tokens&#41;
+        // - Submit a counter-proposal
+        // - Alert the community
+        
+        prop.executed &#61; true;
+        // Execute the action
+    &#125;
+&#125;</code></pre>
+<p>This gives honest participants time to <strong>ragequit</strong> &#40;exit with their share&#41; if something malicious is about to happen.</p>
+<h3 id="ol_start5_quadratic_voting_prevents_whale_dominance"><a href="#ol_start5_quadratic_voting_prevents_whale_dominance" class="header-anchor"><ol start="5">
+<li><p>Quadratic Voting &#40;Prevents Whale Dominance&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: Rich person buys 51&#37; of tokens and controls everything.</p>
+<p><strong>The Solution</strong>: Make additional votes exponentially more expensive.</p>
+<pre><code class="language-solidity">// Normal voting: 100 tokens &#61; 100 votes
+// Quadratic voting: 100 tokens &#61; 10 votes &#40;square root&#41;
+
+function vote&#40;uint proposalId, uint tokenAmount&#41; public &#123;
+    uint votingPower &#61; sqrt&#40;tokenAmount&#41;; // Square root function
+    proposals&#91;proposalId&#93;.votes &#43;&#61; votingPower;
+&#125;</code></pre>
+<p>To get 100 votes, you&#39;d need 10,000 tokens instead of 100. This makes <strong>governance attacks much more expensive</strong>.</p>
+<h3 id="ol_start6_emergency_pause_and_veto_power"><a href="#ol_start6_emergency_pause_and_veto_power" class="header-anchor"><ol start="6">
+<li><p>Emergency Pause and Veto Power</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>The Problem</strong>: Something goes terribly wrong and the DAO is under attack.</p>
+<p><strong>The Solution</strong>: Temporary centralization for early stages.</p>
+<pre><code class="language-solidity">contract EmergencySafety &#123;
+    address public guardian; // Founder or trusted multisig
+    bool public paused &#61; false;
+    uint public guardianExpiresAt; // e.g., 2 years from launch
+    
+    modifier whenNotPaused&#40;&#41; &#123;
+        require&#40;&#33;paused, &quot;Contract is paused&quot;&#41;;
+        _;
+    &#125;
+    
+    modifier onlyGuardian&#40;&#41; &#123;
+        require&#40;msg.sender &#61;&#61; guardian, &quot;Not guardian&quot;&#41;;
+        require&#40;block.timestamp &lt; guardianExpiresAt, &quot;Guardian expired&quot;&#41;;
+        _;
+    &#125;
+    
+    // Guardian can pause in emergency
+    function pause&#40;&#41; public onlyGuardian &#123;
+        paused &#61; true;
+    &#125;
+    
+    // All critical functions check this
+    function executeProposal&#40;uint id&#41; public whenNotPaused &#123;
+        // Normal execution logic
+    &#125;
+&#125;</code></pre>
+<p>This is controversial but practical. Many DAOs have a &quot;training wheels&quot; period where founders can intervene, then <strong>progressively decentralize</strong> over time.</p>
+<h2 id="known_attack_vectors_yes_these_are_real_problems"><a href="#known_attack_vectors_yes_these_are_real_problems" class="header-anchor">Known Attack Vectors &#40;Yes, These Are Real Problems&#41;</a></h2>
+<h3 id="governance_attacks"><a href="#governance_attacks" class="header-anchor">Governance Attacks</a></h3>
+<p>Someone buys a bunch of tokens cheaply, passes a malicious proposal to drain the treasury, then disappears. <strong>Defense</strong>: Time delays, token lock-up periods, reputation weighting.</p>
+<h3 id="sybil_attacks"><a href="#sybil_attacks" class="header-anchor">Sybil Attacks</a></h3>
+<p>One person creates 100 fake accounts to game the system. <strong>Defense</strong>: Reputation systems, proof-of-humanity, staking requirements that make fake accounts expensive.</p>
+<h3 id="collusion"><a href="#collusion" class="header-anchor">Collusion</a></h3>
+<p>Validators secretly coordinate to submit fake data. <strong>Defense</strong>: Anonymous validator assignment, rotating validators, economic penalties bigger than collusion gains.</p>
+<h3 id="51_attacks"><a href="#51_attacks" class="header-anchor">51&#37; Attacks</a></h3>
+<p>Attacker controls majority of voting power. <strong>Defense</strong>: Quadratic voting, reputation-weighted voting, hard-coded limits on treasury withdrawals.</p>
+<h3 id="apathy_attacks"><a href="#apathy_attacks" class="header-anchor">Apathy Attacks</a></h3>
+<p>Nobody votes, so a tiny minority makes all decisions. <strong>Defense</strong>: Minimum quorum requirements, delegation systems, rewards for participation.</p>
+<h2 id="the_bottom_line_on_security"><a href="#the_bottom_line_on_security" class="header-anchor">The Bottom Line on Security</a></h2>
+<p>DAOs are not trustless magic. They&#39;re <strong>trust-minimized</strong> systems that use economic incentives, cryptography, and game theory to align incentives. You still need:</p>
+<ul>
+<li><p><strong>Active human participation</strong> &#40;voting, validating, monitoring&#41;</p>
+</li>
+<li><p><strong>Economic deterrents</strong> &#40;staking, slashing, reputation&#41;</p>
+</li>
+<li><p><strong>Multiple layers of defense</strong> &#40;consensus, delays, emergency stops&#41;</p>
+</li>
+<li><p><strong>Progressive decentralization</strong> &#40;start centralized, gradually hand over control&#41;</p>
+</li>
+</ul>
+<p>The goal isn&#39;t to eliminate all risk—it&#39;s to make malicious behavior <strong>economically irrational</strong>. When stealing \(100K costs you \)200K in stakes and lifetime reputation, most people won&#39;t try it.</p>
+<hr />
+<h2 id="how_daos_are_actually_implemented_today"><a href="#how_daos_are_actually_implemented_today" class="header-anchor">How DAOs Are Actually Implemented Today</a></h2>
+<p>Let me break down the technical reality of modern DAOs:</p>
+<h3 id="programming_languages"><a href="#programming_languages" class="header-anchor">Programming Languages</a></h3>
+<p><strong>Solidity &#40;Dominant - 80&#37;&#43; of DAOs&#41;</strong></p>
+<p>Solidity is the JavaScript of smart contracts—designed specifically for Ethereum and compatible blockchains.</p>
+<pre><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleDAO &#123;
+    mapping&#40;address &#61;&gt; uint&#41; public votes;
+    uint public totalVotes;
+    
+    function vote&#40;&#41; public &#123;
+        votes&#91;msg.sender&#93;&#43;&#43;;
+        totalVotes&#43;&#43;;
+    &#125;
+&#125;</code></pre>
+<p><strong>Why Solidity dominates:</strong></p>
+<ul>
+<li><p>Most mature ecosystem &#40;tools, tutorials, auditors&#41;</p>
+</li>
+<li><p>Works on Ethereum, Polygon, Arbitrum, BSC, Avalanche</p>
+</li>
+<li><p>Huge developer community</p>
+</li>
+<li><p>Most security auditors know Solidity</p>
+</li>
+</ul>
+<p><strong>Rust &#40;Growing - 15&#37;, mainly Solana&#41;</strong></p>
+<p>Solana&#39;s blockchain uses Rust for smart contracts &#40;they call them &quot;programs&quot;&#41;.</p>
+<pre><code class="language-rust">use anchor_lang::prelude::*;
+
+#&#91;program&#93;
+pub mod dao &#123;
+    pub fn vote&#40;ctx: Context&lt;Vote&gt;&#41; -&gt; Result&lt;&#40;&#41;&gt; &#123;
+        let voter &#61; &amp;mut ctx.accounts.voter;
+        voter.votes &#43;&#61; 1;
+        Ok&#40;&#40;&#41;&#41;
+    &#125;
+&#125;</code></pre>
+<p><strong>Why Rust is growing:</strong></p>
+<ul>
+<li><p>Better performance &#40;Solana is very fast&#41;</p>
+</li>
+<li><p>More memory-safe than Solidity</p>
+</li>
+<li><p>Growing in popularity</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>Why Rust over Solidity?</strong></p>
+<p>Solana chose Rust because they were optimizing for raw speed. Solidity was designed specifically for Ethereum, which processes ~15 transactions per second. Solana wanted to do 65,000 transactions per second, so they needed a language that compiles to super efficient machine code. Rust gives you that performance while having built-in memory safety features that prevent entire classes of bugs.</p>
+<p>The trade-off? Rust has a steeper learning curve. Solidity was designed to be easy for JavaScript developers to pick up. Rust forces you to think about memory management, ownership, and lifetimes—concepts that prevent bugs but make your brain hurt initially. Most projects still choose Solidity because the ecosystem is bigger and finding auditors is easier. But if you need maximum speed and you have developers who can handle Rust&#39;s complexity, it&#39;s becoming a serious alternative.</p>
+</blockquote>
+<h3 id="does_a_dao_have_to_use_blockchain"><a href="#does_a_dao_have_to_use_blockchain" class="header-anchor">Does a DAO HAVE TO Use Blockchain?</a></h3>
+<p><strong>Technically? No. Practically? Yes.</strong></p>
+<p>Here&#39;s why blockchain is almost always used:</p>
+<p><strong>What blockchain gives you:</strong></p>
+<ul>
+<li><p><strong>Immutable records</strong>: Nobody can change past votes or transactions</p>
+</li>
+<li><p><strong>Transparency</strong>: Everyone sees the same data</p>
+</li>
+<li><p><strong>Trustless execution</strong>: Code runs automatically, no intermediary</p>
+</li>
+<li><p><strong>Censorship resistance</strong>: Can&#39;t be shut down by a government or company</p>
+</li>
+<li><p><strong>Global access</strong>: Anyone anywhere can participate</p>
+</li>
+<li><p><strong>Programmable money</strong>: Treasury and payments handled by code</p>
+</li>
+</ul>
+<p><strong>Could you build a &quot;DAO&quot; without blockchain?</strong></p>
+<p>Sure, you could have:</p>
+<ul>
+<li><p>Website with voting system</p>
+</li>
+<li><p>Database storing votes</p>
+</li>
+<li><p>Rules enforced by admins</p>
+</li>
+</ul>
+<p>But this isn&#39;t really a DAO—it&#39;s just a web app with community governance. The problem:</p>
+<ul>
+<li><p>Database can be hacked or edited</p>
+</li>
+<li><p>Admins have too much power</p>
+</li>
+<li><p>Server can be shut down</p>
+</li>
+<li><p>Not transparent &#40;who really controls it?&#41;</p>
+</li>
+<li><p>Requires trust in central operators</p>
+</li>
+</ul>
+<h3 id="what_data_goes_on-chain_vs_off-chain"><a href="#what_data_goes_on-chain_vs_off-chain" class="header-anchor">What Data Goes On-Chain vs Off-Chain</a></h3>
+<p>Not everything goes on the blockchain—that would be crazy expensive&#33; Here&#39;s the typical split:</p>
+<p><strong>On-Chain &#40;Expensive but Permanent&#41;:</strong></p>
+<pre><code class="language-solidity">// Stored on blockchain:
+- Token balances &#40;who has how many tokens&#41;
+- Voting results &#40;proposal #5 passed with 80&#37; support&#41;
+- Transaction history &#40;Alice sent 100 tokens to Bob&#41;
+- Smart contract state &#40;treasury has &#36;1M&#41;
+- Staking amounts &#40;validator X has 5,000 tokens locked&#41;
+- Reputation scores &#40;validator Y has 850 points&#41;
+- Proposal outcomes &#40;binary yes/no results&#41;
+- IPFS hashes &#40;pointers to off-chain data&#41;
+
+Cost: &#36;0.01 - &#36;5 per transaction depending on blockchain</code></pre>
+<p><strong>Off-Chain &#40;Cheap but Requires Trust&#41;:</strong></p>
+<pre><code class="language-julia">// Stored elsewhere:
+- Discussion &#40;Discord, forum posts&#41;
+- Large files &#40;experimental data, PDFs, images&#41;
+- Proposal descriptions &#40;stored on IPFS, hash on-chain&#41;
+- User profiles &#40;avatars, bios&#41;
+- Analytics and dashboards
+- Email notifications
+- Draft proposals &#40;before formal submission&#41;
+
+Cost: Free or very cheap &#40;normal web hosting&#41;</code></pre>
+<p><strong>Hybrid Approach &#40;Most Common&#41;:</strong></p>
+<pre><code class="language-julia">User writes proposal:
+  ├─ Title &amp; description → IPFS &#40;large text&#41;
+  ├─ IPFS hash → Blockchain &#40;small, 32 bytes&#41;
+  └─ Voting happens → Blockchain &#40;immutable&#41;
+
+User submits validation data:
+  ├─ Raw CSV file &#40;50MB&#41; → IPFS
+  ├─ IPFS hash → Blockchain
+  ├─ Summary metrics → Blockchain &#40;accuracy: 85&#37;&#41;
+  └─ Payment released → Blockchain &#40;automatic&#41;</code></pre>
+<h3 id="modern_dao_tech_stack_real_example"><a href="#modern_dao_tech_stack_real_example" class="header-anchor">Modern DAO Tech Stack &#40;Real Example&#41;</a></h3>
+<pre><code class="language-julia">┌──────────────────────────────────────┐
+│         User Interface               │
+│  &#40;React/Next.js website&#41;             │
+│  - Hosted on Vercel/Netlify          │
+└──────────────────────────────────────┘
+              ↕
+┌──────────────────────────────────────┐
+│       Web3 Connection Layer          │
+│  - Ethers.js or Web3.js              │
+│  - RPC providers &#40;Alchemy/Infura&#41;    │
+└──────────────────────────────────────┘
+              ↕
+┌──────────────────────────────────────┐
+│      Smart Contracts &#40;Solidity&#41;      │
+│  - Governance.sol &#40;voting&#41;           │
+│  - Treasury.sol &#40;money&#41;              │
+│  - Token.sol &#40;ERC-20&#41;                │
+│  - Staking.sol &#40;lock tokens&#41;         │
+└──────────────────────────────────────┘
+              ↕
+┌──────────────────────────────────────┐
+│          Blockchain Network          │
+│  - Polygon, Ethereum, etc.           │
+│  - Thousands of nodes worldwide      │
+└──────────────────────────────────────┘
+
+        Off-Chain Components:
+┌──────────────────────────────────────┐
+│  IPFS &#40;Decentralized Storage&#41;        │
+│  The Graph &#40;Blockchain Indexing&#41;     │
+│  Discord/Telegram &#40;Communication&#41;    │
+└──────────────────────────────────────┘</code></pre>
+<h3 id="development_tools"><a href="#development_tools" class="header-anchor">Development Tools</a></h3>
+<p><strong>Hardhat &#40;Most Popular&#41;</strong></p>
+<pre><code class="language-javascript">const &#123; ethers &#125; &#61; require&#40;&quot;hardhat&quot;&#41;;
+
+async function deployDAO&#40;&#41; &#123;
+    const DAO &#61; await ethers.getContractFactory&#40;&quot;Governance&quot;&#41;;
+    const dao &#61; await DAO.deploy&#40;&#41;;
+    await dao.deployed&#40;&#41;;
+    console.log&#40;&quot;DAO deployed to:&quot;, dao.address&#41;;
+&#125;</code></pre>
+<p><strong>OpenZeppelin &#40;Building Blocks&#41;</strong></p>
+<pre><code class="language-solidity">// Don&#39;t write from scratch - use audited libraries
+import &quot;@openzeppelin/contracts/token/ERC20/ERC20.sol&quot;;
+import &quot;@openzeppelin/contracts/access/Ownable.sol&quot;;
+
+contract MyToken is ERC20, Ownable &#123;
+    constructor&#40;&#41; ERC20&#40;&quot;MyToken&quot;, &quot;MTK&quot;&#41; &#123;&#125;
+&#125;</code></pre>
+<h3 id="cost_breakdown"><a href="#cost_breakdown" class="header-anchor">Cost Breakdown</a></h3>
+<pre><code class="language-julia">On-Chain Costs &#40;Polygon&#41;:
+├─ Deploy contracts: &#36;50-200 &#40;one-time&#41;
+├─ Submit proposal: &#36;0.10
+├─ Vote: &#36;0.05
+├─ Execute: &#36;0.15
+└─ Withdraw funds: &#36;0.20
+
+Off-Chain Costs:
+├─ Website hosting: &#36;20/month
+├─ IPFS pinning: &#36;10/month
+├─ RPC calls: &#36;50/month
+└─ Discord bots: Free</code></pre>
+<h2 id="the_reality_check"><a href="#the_reality_check" class="header-anchor">The Reality Check</a></h2>
+<p><strong>A modern DAO is typically:</strong></p>
+<ul>
+<li><p>20&#37; on-chain &#40;smart contracts in Solidity&#41;</p>
+</li>
+<li><p>30&#37; off-chain infrastructure &#40;IPFS, databases, APIs&#41;</p>
+</li>
+<li><p>30&#37; frontend &#40;React website&#41;</p>
+</li>
+<li><p>20&#37; community &#40;Discord, documentation&#41;</p>
+</li>
+</ul>
+<p><strong>Critical actions are on-chain:</strong></p>
+<ul>
+<li><p>Voting on proposals</p>
+</li>
+<li><p>Moving treasury funds</p>
+</li>
+<li><p>Token transfers</p>
+</li>
+</ul>
+<p><strong>Everything else is off-chain:</strong></p>
+<ul>
+<li><p>Discussion and debate</p>
+</li>
+<li><p>Data analysis</p>
+</li>
+<li><p>Marketing</p>
+</li>
+</ul>
+<p>The blockchain is expensive and slow, so you only put the <strong>absolutely critical trust-requiring parts</strong> on-chain. Everything else runs on normal servers and saves 99&#37; on costs.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 26, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Distributed Systems & Blockchains</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="distributed_systems_blockchains"><a href="#distributed_systems_blockchains" class="header-anchor">Distributed Systems &amp; Blockchains</a></h1>
+<h2 id="whats_a_distributed_system"><a href="#whats_a_distributed_system" class="header-anchor">What&#39;s a Distributed System?</a></h2>
+<p>A distributed system is multiple computers &#40;nodes&#41; working together to appear as a single coherent system. Think of it like parallel computing, but instead of cores on one machine, you have independent machines connected by a network.</p>
+<p><strong>The graph view</strong>: You can model any distributed system as a graph where:</p>
+<ul>
+<li><p><strong>Nodes</strong> &#61; machines/processes</p>
+</li>
+<li><p><strong>Edges</strong> &#61; communication channels &#40;network links&#41;</p>
+</li>
+<li><p><strong>Edge weights</strong> &#61; latency, or reliability &#40;probability of message delivery&#41;</p>
+</li>
+<li><p><strong>Node states</strong> &#61; current local state of each machine</p>
+</li>
+</ul>
+<p>The key challenges are fundamentally different from single-machine systems:</p>
+<ul>
+<li><p><strong>Partial failures</strong>: Some nodes can fail &#40;node removal from graph&#41;</p>
+</li>
+<li><p><strong>Network unreliability</strong>: Edges can fail or have variable latency &#40;edge failures, changing weights&#41;</p>
+</li>
+<li><p><strong>No global clock</strong>: You can&#39;t assume synchronized time across nodes</p>
+</li>
+<li><p><strong>Network partitions</strong>: The graph can split into disconnected components</p>
+</li>
+</ul>
+<h2 id="the_core_problem_consensus"><a href="#the_core_problem_consensus" class="header-anchor">The Core Problem: Consensus</a></h2>
+<p>When you have multiple nodes, how do they agree on a shared state? This is the <strong>consensus problem</strong>.</p>
+<p>In ML terms, imagine training a model across multiple machines - you need to agree on parameter updates. But what if some machines are malicious or fail mid-computation?</p>
+<p><strong>Graph interpretation</strong>: Consensus is about reaching agreement across all nodes in the graph despite:</p>
+<ul>
+<li><p>Node failures &#40;vertices disappearing&#41;</p>
+</li>
+<li><p>Message loss &#40;edges failing&#41;</p>
+</li>
+<li><p>Network partitions &#40;graph splitting into disconnected components&#41;</p>
+</li>
+</ul>
+<p>The challenge: Each node only has a <strong>local view</strong> of the graph. It doesn&#39;t know which other nodes are alive, which messages were lost, or if the graph is partitioned. Yet all nodes must converge to the same decision.</p>
+<h3 id="the_cap_theorem"><a href="#the_cap_theorem" class="header-anchor">The CAP Theorem</a></h3>
+<p>You can only pick 2 of 3:</p>
+<ul>
+<li><p><strong>C</strong>onsistency: All nodes see the same data</p>
+</li>
+<li><p><strong>A</strong>vailability: Every request gets a response</p>
+</li>
+<li><p><strong>P</strong>artition tolerance: System works despite network splits</p>
+</li>
+</ul>
+<p>Since network partitions <em>will</em> happen, you&#39;re really choosing between C and A.</p>
+<p><strong>Graph view</strong>: </p>
+<ul>
+<li><p><strong>Partition</strong> &#61; graph splits into disconnected components</p>
+</li>
+<li><p><strong>Consistency</strong> &#61; all reachable nodes in the graph have the same state</p>
+</li>
+<li><p><strong>Availability</strong> &#61; every reachable node can respond to queries</p>
+</li>
+</ul>
+<p>When the graph partitions, you must choose: Do nodes in different components give the same answer &#40;C&#41; or do they all respond, possibly with different answers &#40;A&#41;?</p>
+<h2 id="key_protocols"><a href="#key_protocols" class="header-anchor">Key Protocols</a></h2>
+<h3 id="two-phase_commit_2pc"><a href="#two-phase_commit_2pc" class="header-anchor">Two-Phase Commit &#40;2PC&#41;</a></h3>
+<p>Coordinator asks all nodes: &quot;Can you commit?&quot; Then either commits or aborts everywhere.</p>
+<p>Problem: If coordinator fails after some nodes commit, you&#39;re stuck.</p>
+<p><strong>Graph view</strong>: This is a star topology - coordinator at center, all others at edges. Single point of failure at the hub. If hub fails, the graph becomes disconnected and protocol stalls.</p>
+<h3 id="paxos_raft"><a href="#paxos_raft" class="header-anchor">Paxos &amp; Raft</a></h3>
+<p>More fault-tolerant consensus algorithms. Raft is basically &quot;Paxos for humans&quot; - easier to understand and implement.</p>
+<p>Key idea: Elect a leader, leader decides the order of operations, followers replicate. If leader fails, elect a new one.</p>
+<blockquote>
+<p><strong>What&#39;s Raft?</strong></p>
+<p>Raft is a consensus algorithm designed explicitly to be understandable. The authors literally said &quot;Paxos is too hard to teach and implement, let&#39;s make something clearer.&quot;</p>
+<p><strong>The core idea</strong>: Strong leader model with three explicit roles:</p>
+<ul>
+<li><p><strong>Leader</strong>: Handles all client requests, tells everyone else what to do</p>
+</li>
+<li><p><strong>Follower</strong>: Passively replicates what the leader says</p>
+</li>
+<li><p><strong>Candidate</strong>: Trying to become the new leader during an election</p>
+</li>
+</ul>
+<p><strong>Graph view</strong>: Raft creates a <strong>dynamic star topology</strong>:</p>
+<ul>
+<li><p>Leader is the hub, followers are spokes</p>
+</li>
+<li><p>All communication flows through the leader &#40;hub&#41;</p>
+</li>
+<li><p>When leader fails, the graph reconfigures with a new hub via election</p>
+</li>
+<li><p>This is why it&#39;s simpler than Paxos - the topology is always a star, just with different centers over time</p>
+</li>
+</ul>
+<p><strong>How it works:</strong></p>
+<ol>
+<li><p><strong>Normal operation</strong> &#40;leader exists&#41;:</p>
+<ul>
+<li><p>Client sends request to leader</p>
+</li>
+<li><p>Leader appends to its log, sends to all followers &#40;hub → spokes&#41;</p>
+</li>
+<li><p>Once majority confirms &#40;majority of spokes respond&#41;, leader commits</p>
+</li>
+<li><p>Leader responds to client</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Leader election</strong> &#40;leader crashed &#61; hub disappeared&#41;:</p>
+<ul>
+<li><p>Followers have timeouts; if no heartbeat, become candidate</p>
+</li>
+<li><p>Candidate votes for itself, asks others for votes &#40;attempting to become new hub&#41;</p>
+</li>
+<li><p>Needs majority to win; includes randomized timeouts to avoid ties</p>
+</li>
+<li><p>Winner becomes leader &#40;new hub&#41;, starts sending heartbeats</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Log replication</strong> &#40;keeping consistent&#41;:</p>
+<ul>
+<li><p>Each log entry has: term number &#40;election cycle&#41; &#43; command &#43; index</p>
+</li>
+<li><p>Leader never overwrites its log, only appends</p>
+</li>
+<li><p>If follower&#39;s log conflicts, leader forces follower to match</p>
+</li>
+<li><p><strong>Graph property</strong>: This ensures all paths from leader eventually carry identical information</p>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>Why it&#39;s clearer than Paxos:</strong></p>
+<ul>
+<li><p>Paxos: Any node can propose &#40;fully connected graph behavior&#41;</p>
+</li>
+<li><p>Raft: Only leader proposes &#40;enforced star topology&#41;</p>
+</li>
+<li><p>Paxos: Multiple roles can overlap &#40;proposer/acceptor/learner&#41;</p>
+</li>
+<li><p>Raft: Clean state machine, explicit transitions</p>
+</li>
+<li><p>Paxos: Must handle learning previous decisions via complex rules</p>
+</li>
+<li><p>Raft: Logs are append-only and always flow from leader → followers</p>
+</li>
+</ul>
+<p><strong>Safety guarantee</strong>: If two logs contain an entry at the same index and term, they&#39;re identical up to that point. This comes from the election restriction: a candidate can only win if its log is at least as up-to-date as a majority.</p>
+<p><strong>Quorum requirement</strong>: Leader needs responses from majority of nodes. In graph terms, it needs to reach more than half the vertices. This ensures any two majorities &#40;quorums&#41; overlap by at least one node, preventing split-brain scenarios even during partitions.</p>
+<p><strong>Quick pseudo-code:</strong></p>
+</blockquote>
+<pre><code class="language-python">&gt; # Node state
+&gt; state &#61; FOLLOWER  # or LEADER or CANDIDATE
+&gt; current_term &#61; 0
+&gt; voted_for &#61; None
+&gt; log &#61; &#91;&#93;
+&gt; commit_index &#61; 0
+&gt; 
+&gt; # Follower timeout → become candidate
+&gt; def election_timeout&#40;&#41;:
+&gt;     current_term &#43;&#61; 1
+&gt;     state &#61; CANDIDATE
+&gt;     voted_for &#61; self
+&gt;     votes &#61; 1
+&gt;     
+&gt;     for node in other_nodes:
+&gt;         response &#61; node.request_vote&#40;current_term, len&#40;log&#41;&#41;
+&gt;         if response.vote_granted:
+&gt;             votes &#43;&#61; 1
+&gt;     
+&gt;     if votes &gt; majority:
+&gt;         state &#61; LEADER
+&gt;         send_heartbeats&#40;&#41;
+&gt; 
+&gt; # Leader appends entry
+&gt; def append_entry&#40;command&#41;:
+&gt;     log.append&#40;Entry&#40;current_term, command&#41;&#41;
+&gt;     
+&gt;     acks &#61; 1
+&gt;     for node in other_nodes:
+&gt;         if node.append_entries&#40;log&#41;:
+&gt;             acks &#43;&#61; 1
+&gt;     
+&gt;     if acks &gt; majority:
+&gt;         commit_index &#61; len&#40;log&#41;
+&gt;         apply_to_state_machine&#40;command&#41;
+&gt;</code></pre>
+<blockquote>
+<p>In practice, Raft is used in etcd &#40;Kubernetes&#41;, Consul, CockroachDB, and many other production systems. It&#39;s become the go-to consensus algorithm because developers can actually understand and correctly implement it.</p>
+</blockquote>
+<blockquote>
+<p><strong>What&#39;s Paxos?</strong></p>
+<p>Paxos is Leslie Lamport&#39;s algorithm for getting multiple machines to agree on a single value, even when some machines crash or messages get lost.</p>
+<p>The intuition: Imagine trying to pick a restaurant with friends via text, but some messages arrive late or not at all. Paxos solves this through rounds of proposals and voting:</p>
+<ol>
+<li><p><strong>Prepare phase</strong>: &quot;I propose restaurant X with proposal number N&quot;</p>
+</li>
+<li><p><strong>Promise phase</strong>: Others respond: &quot;OK, I haven&#39;t seen a higher proposal number, I promise to reject anything lower&quot;</p>
+</li>
+<li><p><strong>Accept phase</strong>: If enough promises, send &quot;Accept restaurant X&quot;</p>
+</li>
+<li><p><strong>Accepted phase</strong>: Once majority accepts, decision is final</p>
+</li>
+</ol>
+<p>The clever bit: Proposal numbers ensure that even if multiple people try to lead simultaneously &#40;split brain&#41;, the system converges to one decision. Higher proposal numbers always win.</p>
+<p>It&#39;s notoriously tricky to understand and implement correctly, which is why Raft was created - it does essentially the same thing but with clearer roles &#40;leader/follower/candidate&#41; and explicit state machines.</p>
+<p><strong>What algorithms does it use?</strong></p>
+<p>It&#39;s actually pretty straightforward - just state machines and message passing&#33; Nothing fancy like graph algorithms or dynamic programming. The core is:</p>
+<ul>
+<li><p>Monotonically increasing proposal numbers &#40;think: logical clocks, like Lamport timestamps&#41;</p>
+</li>
+<li><p>Majority voting &#40;quorum &#61; \(\lfloor n/2 \rfloor + 1\) nodes&#41;</p>
+</li>
+<li><p>State tracking &#40;remember highest proposal seen&#41;</p>
+</li>
+</ul>
+<p><strong>Pseudo-code &#40;simplified proposer side&#41;:</strong></p>
+</blockquote>
+<pre><code class="language-python">&gt; # Proposer trying to get value v accepted
+&gt; def propose&#40;v&#41;:
+&gt;     n &#61; generate_unique_proposal_number&#40;&#41;
+&gt;     
+&gt;     # Phase 1: Prepare
+&gt;     promises &#61; &#91;&#93;
+&gt;     for acceptor in majority_of_acceptors&#40;&#41;:
+&gt;         response &#61; send&#40;acceptor, PREPARE&#40;n&#41;&#41;
+&gt;         if response.type &#61;&#61; PROMISE:
+&gt;             promises.append&#40;response&#41;
+&gt;     
+&gt;     if len&#40;promises&#41; &lt; quorum:
+&gt;         return FAIL  # Try again with higher n
+&gt;     
+&gt;     # Check if any acceptor already accepted a value
+&gt;     highest_accepted &#61; max&#40;promises, key&#61;lambda p: p.accepted_n&#41;
+&gt;     if highest_accepted.value:
+&gt;         v &#61; highest_accepted.value  # Must use this value&#33;
+&gt;     
+&gt;     # Phase 2: Accept
+&gt;     accepts &#61; &#91;&#93;
+&gt;     for acceptor in majority_of_acceptors&#40;&#41;:
+&gt;         response &#61; send&#40;acceptor, ACCEPT&#40;n, v&#41;&#41;
+&gt;         if response.type &#61;&#61; ACCEPTED:
+&gt;             accepts.append&#40;response&#41;
+&gt;     
+&gt;     if len&#40;accepts&#41; &gt;&#61; quorum:
+&gt;         return SUCCESS&#40;v&#41;
+&gt;     else:
+&gt;         return FAIL
+&gt;</code></pre>
+<blockquote>
+<p><strong>Acceptor side:</strong></p>
+</blockquote>
+<pre><code class="language-python">&gt; # Acceptor state
+&gt; highest_promised_n &#61; -1
+&gt; highest_accepted_n &#61; -1
+&gt; accepted_value &#61; None
+&gt; 
+&gt; def handle_prepare&#40;n&#41;:
+&gt;     if n &gt; highest_promised_n:
+&gt;         highest_promised_n &#61; n
+&gt;         return PROMISE&#40;highest_accepted_n, accepted_value&#41;
+&gt;     else:
+&gt;         return REJECT
+&gt; 
+&gt; def handle_accept&#40;n, v&#41;:
+&gt;     if n &gt;&#61; highest_promised_n:
+&gt;         highest_promised_n &#61; n
+&gt;         highest_accepted_n &#61; n
+&gt;         accepted_value &#61; v
+&gt;         return ACCEPTED
+&gt;     else:
+&gt;         return REJECT
+&gt;</code></pre>
+<blockquote>
+<p>The tricky part isn&#39;t the algorithm itself - it&#39;s reasoning about all possible message orderings and failures&#33;</p>
+</blockquote>
+<h3 id="byzantine_fault_tolerance_bft"><a href="#byzantine_fault_tolerance_bft" class="header-anchor">Byzantine Fault Tolerance &#40;BFT&#41;</a></h3>
+<blockquote>
+<p><strong>What&#39;s BFT?</strong></p>
+<p>BFT stands for <strong>Byzantine Fault Tolerance</strong> - it&#39;s the property of a system that can tolerate Byzantine faults and still reach consensus. A BFT algorithm guarantees that honest nodes will agree on a value even when some nodes are Byzantine.</p>
+<p><strong>PBFT</strong> &#40;Practical Byzantine Fault Tolerance&#41; is a specific BFT algorithm from 1999 that made BFT efficient enough for real systems. Before PBFT, BFT algorithms were too slow to be practical.</p>
+<p>PBFT works through three phases &#40;similar to Paxos but with extra rounds to catch Byzantine behavior&#41;:</p>
+<ol>
+<li><p><strong>Pre-prepare</strong>: Leader proposes a value with sequence number</p>
+</li>
+<li><p><strong>Prepare</strong>: All nodes broadcast what they received &#40;catches equivocation - if leader sent different values to different nodes, this reveals it&#41;</p>
+</li>
+<li><p><strong>Commit</strong>: Once nodes see matching prepares from \(2f + 1\) nodes, they broadcast commit</p>
+</li>
+<li><p><strong>Execute</strong>: Once \(2f + 1\) matching commits seen, execute the operation</p>
+</li>
+</ol>
+<p>The extra communication rounds &#40;compared to crash-tolerant consensus&#41; are needed to detect and work around Byzantine nodes lying to different neighbors.</p>
+</blockquote>
+<blockquote>
+<p><strong>What&#39;s a Byzantine node?</strong></p>
+<p>Yes, &quot;Byzantine&quot; is just the technical term for a node exhibiting arbitrary malicious or faulty behavior. The name comes from the &quot;Byzantine Generals Problem&quot; - imagine generals surrounding a city, needing to agree on whether to attack or retreat. Some generals might be traitors trying to cause confusion.</p>
+<p><strong>Byzantine fault</strong> &#61; worst-case arbitrary behavior. A Byzantine node can:</p>
+<ul>
+<li><p><strong>Lie arbitrarily</strong>: Send &quot;value &#61; 5&quot; to Alice, &quot;value &#61; 9&quot; to Bob</p>
+</li>
+<li><p><strong>Crash at convenient times</strong>: Fail right after spreading misinformation</p>
+</li>
+<li><p><strong>Equivocate</strong>: Claim &quot;I voted yes&quot; to some nodes, &quot;I voted no&quot; to others</p>
+</li>
+<li><p><strong>Collude</strong>: Coordinate with other Byzantine nodes to maximize damage</p>
+</li>
+<li><p><strong>Ignore protocol</strong>: Send garbage, replay old messages, stay silent</p>
+</li>
+</ul>
+<p>Crucially, Byzantine nodes have <strong>unlimited computational power</strong> in the model - they can break any cryptographic assumption. The only thing they can&#39;t do is forge digital signatures &#40;we assume signature schemes are secure&#41;.</p>
+<p><strong>Contrast with simpler faults:</strong></p>
+<ul>
+<li><p><strong>Crash fault</strong>: Node just stops &#40;think: power outage&#41;</p>
+</li>
+<li><p><strong>Omission fault</strong>: Node drops messages but otherwise follows protocol</p>
+</li>
+<li><p><strong>Byzantine fault</strong>: Arbitrary malicious behavior &#40;could be actual malice, software bugs, or hardware failures that cause random behavior&#41;</p>
+</li>
+</ul>
+<p>Byzantine is the hardest fault model because you can&#39;t distinguish a Byzantine node from an honest one that&#39;s experiencing network issues - it&#39;s adversarially adaptive.</p>
+</blockquote>
+<p>What if some nodes are Byzantine? Classical BFT &#40;like PBFT&#41; can tolerate up to \(f\) Byzantine nodes out of \(3f + 1\) total nodes.</p>
+<blockquote>
+<p><strong>Why \(3f + 1\) nodes for \(f\) Byzantine faults?</strong></p>
+<p><strong>Quorum</strong> &#61; the minimum number of nodes that must agree for a decision to be valid. Think of it like a voting threshold - you need responses from at least this many nodes to proceed.</p>
+<p>In most systems, quorum &#61; majority &#61; \(\lfloor n/2 \rfloor + 1\) nodes. The key property: any two quorums must overlap &#40;share at least one node&#41;.</p>
+<p><strong>Why quorums matter</strong>: If you make decisions based on quorum responses, and any two quorums overlap, then information can&#39;t be lost or inconsistent - at least one node saw both decisions.</p>
+<p>Intuition for \(3f + 1\): You need enough honest nodes that they outnumber Byzantine nodes in any quorum intersection.</p>
+<ul>
+<li><p>Quorum size: \(2f + 1\) &#40;majority of \(3f + 1\)&#41;</p>
+</li>
+<li><p>Two quorums must overlap by at least: \((2f + 1) + (2f + 1) - (3f + 1) = f + 1\) nodes</p>
+</li>
+<li><p>If at most \(f\) nodes are Byzantine, the intersection has at least 1 honest node</p>
+</li>
+<li><p>This honest node ensures both quorums saw consistent information</p>
+</li>
+</ul>
+<p><strong>Why not \(2f + 1\) total nodes?</strong></p>
+<ul>
+<li><p>With \(2f + 1\) nodes, quorums are size \(f + 1\)</p>
+</li>
+<li><p>Two quorums could intersect in exactly \(f + 1\) nodes</p>
+</li>
+<li><p>If all \(f\) Byzantine nodes are in the intersection, you can&#39;t tell if the quorum is honest</p>
+</li>
+<li><p>Byzantine nodes could make one quorum think &quot;decided A&quot; and another think &quot;decided B&quot;</p>
+</li>
+</ul>
+<p><strong>Concrete example</strong> with \(f = 1\) &#40;one traitor&#41;:</p>
+<ul>
+<li><p>Need \(3(1) + 1 = 4\) nodes total</p>
+</li>
+<li><p>Quorum &#61; 3 nodes</p>
+</li>
+<li><p>Any two quorums overlap by at least 2 nodes</p>
+</li>
+<li><p>At most 1 Byzantine, so intersection has at least 1 honest node ✓</p>
+</li>
+</ul>
+<p>With only 3 nodes and \(f=1\): quorums of size 2 could intersect in just 1 node, which might be the Byzantine one ✗</p>
+</blockquote>
+<p>This is where blockchains come in.</p>
+<p><strong>Graph view</strong>: Byzantine nodes are <strong>adversarial vertices</strong> that can:</p>
+<ul>
+<li><p>Send different messages along different edges &#40;lie to different neighbors&#41;</p>
+</li>
+<li><p>Collude with other Byzantine nodes &#40;form adversarial subgraph&#41;</p>
+</li>
+<li><p>Try to partition the graph or create inconsistent views</p>
+</li>
+</ul>
+<p>The \(3f + 1\) requirement means you need enough honest nodes that any two quorums &#40;majorities&#41; share at least \(f + 1\) nodes, guaranteeing at least one honest node in the intersection. This prevents adversarial subgraphs from creating divergent views of the system state.</p>
+<h2 id="how_blockchains_fit_in"><a href="#how_blockchains_fit_in" class="header-anchor">How Blockchains Fit In</a></h2>
+<p>Blockchains are distributed systems designed for <strong>trustless</strong> environments - you can&#39;t assume nodes are honest.</p>
+<p><strong>Graph perspective</strong>: Blockchains operate on <strong>dynamic, permissionless graphs</strong>:</p>
+<ul>
+<li><p>Nodes can join/leave freely &#40;vertices added/removed dynamically&#41;</p>
+</li>
+<li><p>You don&#39;t know the full graph topology &#40;decentralized discovery&#41;</p>
+</li>
+<li><p>Adversarial nodes can have arbitrary connectivity &#40;sybil attacks &#61; fake vertices&#41;</p>
+</li>
+<li><p>Communication is eventually broadcast to all connected components</p>
+</li>
+</ul>
+<h3 id="key_properties"><a href="#key_properties" class="header-anchor">Key Properties</a></h3>
+<ol>
+<li><p><strong>Distributed ledger</strong>: Everyone maintains a copy of the transaction history</p>
+</li>
+<li><p><strong>Cryptographic linking</strong>: Each block contains hash of previous block \(h_i = \text{Hash}(h_{i-1} || \text{data}_i || \text{nonce}_i)\) This creates a <strong>directed acyclic graph &#40;DAG&#41;</strong> of blocks, though typically pruned to a single chain</p>
+</li>
+<li><p><strong>Consensus without coordinator</strong>: No fixed hub in the graph topology - any node can propose blocks</p>
+</li>
+</ol>
+<h3 id="bitcoins_innovation_proof_of_work"><a href="#bitcoins_innovation_proof_of_work" class="header-anchor">Bitcoin&#39;s Innovation: Proof of Work</a></h3>
+<p>Instead of BFT&#39;s assumption of &quot;less than 1/3 malicious nodes,&quot; Bitcoin uses computational cost:</p>
+<ul>
+<li><p>To propose a block, solve: \(\text{Hash}(\text{block}) < \text{target}\)</p>
+</li>
+<li><p>This is expensive &#40;requires \(\sim 2^{256}/\text{target}\) attempts&#41;</p>
+</li>
+<li><p>Attacking requires 51&#37; of total compute power</p>
+</li>
+</ul>
+<p>It&#39;s essentially converting the Byzantine problem into an economic game - attacking costs more than it&#39;s worth.</p>
+<p><strong>Graph insight</strong>: Instead of counting nodes &#40;which can be faked via sybil attacks - creating many fake vertices&#41;, Bitcoin weights by computational power. The &quot;real&quot; graph is weighted by hash rate, not vertex count. An adversary must control &gt;50&#37; of the total edge weight &#40;hash power&#41; in the network to consistently win the longest chain race.</p>
+<h3 id="the_blockchain_trilemma"><a href="#the_blockchain_trilemma" class="header-anchor">The Blockchain Trilemma</a></h3>
+<p>Like CAP, blockchains face tradeoffs between:</p>
+<ul>
+<li><p><strong>Decentralization</strong>: Many independent nodes</p>
+</li>
+<li><p><strong>Security</strong>: Resistance to attacks</p>
+</li>
+<li><p><strong>Scalability</strong>: Transaction throughput</p>
+</li>
+</ul>
+<p>Bitcoin chose decentralization &#43; security, sacrificing scalability &#40;~7 tx/sec&#41;.</p>
+<h3 id="modern_alternatives"><a href="#modern_alternatives" class="header-anchor">Modern Alternatives</a></h3>
+<ul>
+<li><p><strong>Proof of Stake</strong>: Replace computation with economic stake &#40;Ethereum 2.0&#41; - graph weighted by staked tokens instead of hash power</p>
+</li>
+<li><p><strong>DAGs</strong>: Directed acyclic graphs instead of chains &#40;IOTA, Hedera&#41; - embrace the natural DAG structure rather than forcing linearization</p>
+</li>
+<li><p><strong>Sharding</strong>: Partition the network to parallelize &#40;Ethereum, Polkadot&#41; - split the graph into subgraphs that process transactions in parallel</p>
+</li>
+<li><p><strong>Layer 2</strong>: Do most transactions off-chain, settle on-chain &#40;Lightning Network&#41; - create overlay networks &#40;graphs on top of graphs&#41; for fast local transactions</p>
+</li>
+</ul>
+<h2 id="the_connection"><a href="#the_connection" class="header-anchor">The Connection</a></h2>
+<p>Blockchains are a specific type of distributed system that:</p>
+<ol>
+<li><p>Optimize for <strong>trustlessness</strong> over performance</p>
+</li>
+<li><p>Use <strong>incentive mechanisms</strong> &#40;economics&#41; to enforce correct behavior</p>
+</li>
+<li><p>Prioritize <strong>immutability</strong> and <strong>transparency</strong></p>
+</li>
+</ol>
+<p>Traditional distributed systems &#40;like databases&#41; assume a trusted environment and optimize for performance and consistency. Blockchains assume an adversarial environment and optimize for security and decentralization.</p>
+<p>From a theoretical CS perspective, blockchains showed that you can achieve consensus in a permissionless setting - anyone can join without identity verification. Classical BFT protocols required knowing the set of participants ahead of time.</p>
+<p><strong>Graph theory connection</strong>: Most distributed systems assume a <strong>known, static graph</strong> &#40;you know all nodes and their connections&#41;. Blockchains solve consensus on <strong>unknown, dynamic graphs</strong> where:</p>
+<ul>
+<li><p>Topology changes constantly &#40;nodes join/leave&#41;</p>
+</li>
+<li><p>Adversary can spawn unlimited fake nodes &#40;sybil attacks&#41;</p>
+</li>
+<li><p>You only see your local neighborhood, not global structure</p>
+</li>
+<li><p>Network delays create temporarily inconsistent views of the graph state</p>
+</li>
+</ul>
+<p>This is why blockchains are so much slower - they&#39;re solving a fundamentally harder graph problem.</p>
+<h2 id="why_study_distributed_systems"><a href="#why_study_distributed_systems" class="header-anchor">Why Study Distributed Systems?</a></h2>
+<h3 id="the_mindset_shift"><a href="#the_mindset_shift" class="header-anchor">The Mindset Shift</a></h3>
+<p>Most CS education teaches you to think about programs running on one machine with perfect execution. Distributed systems forces you to think fundamentally differently:</p>
+<p><strong>From deterministic to probabilistic</strong>: Your code doesn&#39;t &quot;work&quot; or &quot;not work&quot; - it works with some probability under some failure conditions. You start reasoning about liveness &#40;eventually makes progress&#41; vs. safety &#40;never does the wrong thing&#41;.</p>
+<p><strong>From correctness to tradeoffs</strong>: There&#39;s no &quot;correct&quot; distributed system, only tradeoffs. You learn to articulate: &quot;This design gives strong consistency but sacrifices 20&#37; throughput&quot; or &quot;This approach is partition-tolerant but eventually consistent.&quot;</p>
+<p><strong>From debugging to reasoning</strong>: You can&#39;t step through a distributed system with a debugger when five machines are running simultaneously. You learn to reason about systems formally - invariants, state machines, message orderings. It&#39;s closer to mathematical proof than traditional debugging.</p>
+<h3 id="what_you_actually_gain"><a href="#what_you_actually_gain" class="header-anchor">What You Actually Gain</a></h3>
+<p>After a distributed systems course, you develop intuitions that other developers lack:</p>
+<ol>
+<li><p><strong>Failure thinking</strong>: You instinctively ask &quot;what if this node crashes right here?&quot; for any design. You see failure modes others miss.</p>
+</li>
+<li><p><strong>Scalability reasoning</strong>: You can estimate: &quot;This design does O&#40;n²&#41; messages per operation, won&#39;t scale past 100 nodes&quot; or &quot;This needs 3 round-trips, adds 300ms latency.&quot;</p>
+</li>
+<li><p><strong>Real-world architecture</strong>: You understand how systems you use daily actually work - how does Google Spanner provide global consistency? Why does DynamoDB choose eventual consistency? How does Kafka guarantee ordering?</p>
+</li>
+<li><p><strong>The &quot;distributed systems smell&quot;</strong>: You recognize when someone&#39;s design won&#39;t work at scale. You&#39;ve seen enough consensus algorithms to know when someone&#39;s &quot;simple new protocol&quot; is reinventing Paxos badly.</p>
+</li>
+</ol>
+<h3 id="career_impact"><a href="#career_impact" class="header-anchor">Career Impact</a></h3>
+<p>This knowledge puts you in a different tier for certain roles:</p>
+<ul>
+<li><p><strong>Infrastructure engineering</strong>: You can actually design the systems &#40;databases, message queues, storage systems&#41; rather than just use them</p>
+</li>
+<li><p><strong>Big tech interviews</strong>: Companies like Google, Amazon, Meta heavily weight distributed systems in senior interviews</p>
+</li>
+<li><p><strong>Startup CTO/architect</strong>: You can make informed decisions about CAP tradeoffs, not just cargo-cult &quot;use MongoDB because it scales&quot;</p>
+</li>
+<li><p><strong>Research</strong>: If you go into systems research, this is foundational - ML systems, databases, cloud computing all build on these primitives</p>
+</li>
+</ul>
+<h3 id="the_humility_factor"><a href="#the_humility_factor" class="header-anchor">The Humility Factor</a></h3>
+<p>Paradoxically, studying distributed systems makes you more cautious. You&#39;ve seen so many subtle bugs and edge cases that you become skeptical of &quot;simple&quot; solutions to hard problems. When someone proposes a new blockchain or database, you immediately think: &quot;Did they handle split-brain? What about the two-generals problem?&quot;</p>
+<p>It&#39;s the difference between a developer who thinks &quot;I&#39;ll just add a cache&quot; and one who thinks &quot;I&#39;ll add a cache, but invalidation is hard - what consistency model do I need? What if the cache and DB disagree? What&#39;s my failure mode?&quot;</p>
+<h2 id="further_reading"><a href="#further_reading" class="header-anchor">Further Reading</a></h2>
+<ul>
+<li><p><strong>Lamport&#39;s &quot;Time, Clocks, and the Ordering of Events&quot;</strong> - foundational distributed systems paper</p>
+</li>
+<li><p><strong>Bitcoin whitepaper</strong> - surprisingly readable, only 9 pages</p>
+</li>
+<li><p><strong>Raft paper</strong> - &quot;In Search of an Understandable Consensus Algorithm&quot;</p>
+</li>
+<li><p><strong>Designing Data-Intensive Applications</strong> &#40;Martin Kleppmann&#41; - the best book for practitioners</p>
+</li>
+</ul>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 29, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

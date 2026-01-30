@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Solidity: A Mathematical Framework</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="solidity_a_mathematical_framework"><a href="#solidity_a_mathematical_framework" class="header-anchor">Solidity: A Mathematical Framework</a></h1>
+<h2 id="the_core_insight"><a href="#the_core_insight" class="header-anchor">The Core Insight</a></h2>
+<blockquote>
+<p><strong>Why is a contract a &quot;state space&quot;?</strong></p>
+<p>Think of your contract like a video game save file. At any moment, the game has a specific configuration: your health is 80, you have 3 potions, you&#39;re at level 5, you&#39;re in the forest area. That&#39;s the <strong>current state</strong>.</p>
+<p>The <strong>state space</strong> is <em>all possible configurations</em> the game could be in: health from 0-100, potions from 0-99, any level, any location. It&#39;s the entire universe of &quot;ways the game could be.&quot;</p>
+<p>A Solidity contract works the same way:</p>
+<ul>
+<li><p><strong>Current state</strong> &#61; the actual values stored right now &#40;Alice has 100 tokens, Bob has 50 tokens&#41;</p>
+</li>
+<li><p><strong>State space</strong> &#61; all possible values those variables could hold &#40;anyone could have 0 to 2²⁵⁶-1 tokens&#41;</p>
+</li>
+</ul>
+<p>When you call a function, you&#39;re not adding new data—you&#39;re <strong>moving from one point in the state space to another point</strong>. Like pressing a button in the game: your health goes from 80→100 &#40;you moved in &quot;health space&quot;&#41;.</p>
+<p><strong>Why this matters:</strong> The state space is <em>fixed</em> when you deploy the contract &#40;you define what variables exist&#41;. Functions just navigate within that space. You can&#39;t suddenly add a new variable mid-game—that would be changing the rules of what states are possible.</p>
+<p>So a contract is a state space because it defines &quot;here are all the configurations I can be in&quot; and functions are just &quot;here&#39;s how to jump from one configuration to another.&quot;</p>
+</blockquote>
+<blockquote>
+<p><strong>So interactions are just navigation?</strong></p>
+<p>Exactly&#33; Every function call is like telling the contract: &quot;Move from here to there in the state space.&quot;</p>
+<p>But here&#39;s the catch—you can&#39;t just teleport anywhere. You have <strong>constraints</strong>:</p>
+<ol>
+<li><p><strong>Access constraints</strong> &#40;the bouncer&#41;: &quot;Are you allowed to press this button?&quot;</p>
+<ul>
+<li><p><code>onlyOwner</code> → only one person can navigate this way</p>
+</li>
+<li><p><code>payable</code> → you need to bring ETH to use this route</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Logic constraints</strong> &#40;the rules&#41;: &quot;Is this move even legal?&quot;</p>
+<ul>
+<li><p>Can&#39;t transfer more tokens than you have</p>
+</li>
+<li><p>Can&#39;t withdraw if balance is zero</p>
+</li>
+<li><p>Can&#39;t bid after auction ended</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Cost constraints</strong> &#40;the toll&#41;: &quot;Do you have enough gas to make this move?&quot;</p>
+<ul>
+<li><p>Each step costs computational resources</p>
+</li>
+<li><p>Complex moves cost more than simple ones</p>
+</li>
+</ul>
+</li>
+</ol>
+<p>Think of it like a board game: the state is where all the pieces are, functions are the allowed moves, and constraints are the rules preventing illegal moves. You&#39;re not creating new pieces—you&#39;re just moving existing pieces within the rules.</p>
+<p><strong>The blockchain just enforces that everyone follows the same navigation rules.</strong> No cheating, no backsies.</p>
+</blockquote>
+<blockquote>
+<p><strong>Does a contract have a termination state?</strong></p>
+<p>Here&#39;s the twist: <strong>most contracts never actually &quot;end&quot;</strong>—they just sit there forever, frozen in whatever state they&#39;re in.</p>
+<p>But yes, you can design contracts with terminal states:</p>
+<p><strong>Option 1: Logical termination</strong> &#40;the contract is &quot;done&quot; but still exists&#41;</p>
+<ul>
+<li><p>An auction reaches <code>State.Ended</code> → no more bids allowed, winner claimed their item</p>
+</li>
+<li><p>A vesting contract releases all tokens → nothing left to vest</p>
+</li>
+<li><p>Think: the game is over, but the save file still exists. You just can&#39;t press any meaningful buttons anymore.</p>
+</li>
+</ul>
+<p>Mathematically: you reach a state \(s_{\text{terminal}}\) where all remaining functions become no-ops or revert:</p>
+</blockquote>
+\[\forall f \in F: f(s_{\text{terminal}}, \cdot) = s_{\text{terminal}} \text{ or } \text{revert}\]
+<blockquote>
+<p><strong>Option 2: Self-destruct</strong> &#40;true annihilation&#41;</p>
+<ul>
+<li><p>Use <code>selfdestruct&#40;recipient&#41;</code> → contract code is erased, remaining ETH sent to recipient</p>
+</li>
+<li><p>The contract address becomes a tombstone—you can still send it money, but there&#39;s no code to execute</p>
+</li>
+<li><p>Think: deleting the game entirely, not just finishing it</p>
+</li>
+</ul>
+<p><strong>Why most contracts don&#39;t terminate:</strong></p>
+<ul>
+<li><p>Tokens need to exist forever &#40;imagine if dollar bills expired&#33;&#41;</p>
+</li>
+<li><p>DAOs persist indefinitely</p>
+</li>
+<li><p>Many protocols are designed to run perpetually</p>
+</li>
+</ul>
+<p>So yes, termination states exist, but they&#39;re optional design choices, not requirements. A contract can be &quot;functionally complete&quot; &#40;auction ended&#41; while still being technically alive &#40;code exists, state persists&#41;.</p>
+</blockquote>
+<p>Solidity isn&#39;t really about syntax—it&#39;s about <strong>state transitions under constraints</strong>. Think of it as defining a state machine where every function is a transition function that costs money to execute.</p>
+<h2 id="the_big_picture_a_formal_system"><a href="#the_big_picture_a_formal_system" class="header-anchor">The Big Picture: A Formal System</a></h2>
+<p>A smart contract is essentially:</p>
+\[\mathcal{C} = (S, F, \tau, \mathcal{G})\]
+<p>where:</p>
+<ul>
+<li><p>\(S\) &#61; state space &#40;all possible storage configurations&#41;</p>
+</li>
+<li><p>\(F\) &#61; set of functions &#40;state transition operators&#41;</p>
+</li>
+<li><p>\(\tau\) &#61; access control predicates &#40;who can call what&#41;</p>
+</li>
+<li><p>\(\mathcal{G}\) &#61; gas cost function &#40;computational price&#41;</p>
+</li>
+</ul>
+<hr />
+<h2 id="state_space_s"><a href="#state_space_s" class="header-anchor"><ol>
+<li><p>State Space \(S\)</p>
+</li>
+</ol>
+</a></h2>
+<blockquote>
+<p><strong>Wait, what exactly IS &quot;the state&quot;? Is it the blockchain itself?</strong></p>
+<p>Let me clarify with a crucial distinction: <strong>the blockchain records CHANGES, but only stores the CURRENT state</strong>.</p>
+<p><strong>Here&#39;s what actually gets recorded on the blockchain:</strong></p>
+<p><strong>Every block permanently stores:</strong></p>
+<ol>
+<li><p><strong>Transactions</strong> &#40;the instructions: &quot;Alice called transfer&#40;Bob, 50&#41;&quot;&#41;</p>
+</li>
+<li><p><strong>Event logs</strong> &#40;notifications: &quot;Transfer happened from Alice to Bob&quot;&#41;</p>
+</li>
+<li><p><strong>State root hash</strong> &#40;a cryptographic fingerprint of ALL current states at that moment&#41;</p>
+</li>
+</ol>
+<p><strong>What&#39;s NOT stored in every block:</strong></p>
+<ul>
+<li><p>The complete history of every variable&#39;s value over time</p>
+</li>
+</ul>
+<p><strong>Think of it like Git commits:</strong></p>
+<ul>
+<li><p>Each block is like a commit that says &quot;here&#39;s what changed&quot; &#40;the transaction&#41;</p>
+</li>
+<li><p>The blockchain keeps the CURRENT state &#40;like your working directory&#41;</p>
+</li>
+<li><p>To see historical states, you replay all transactions from genesis &#40;like checking out an old commit&#41;</p>
+</li>
+</ul>
+<p><strong>Concrete example:</strong></p>
+<p>Your contract has <code>balance&#91;Alice&#93; &#61; 100</code></p>
+<table><tr><th align="right">Block</th><th align="right">Transaction</th><th align="right">State After</th><th align="right">What&#39;s Stored</th></tr><tr><td align="right">1000</td><td align="right">Alice sends 30 to Bob</td><td align="right"><code>balance&#91;Alice&#93; &#61; 70</code></td><td align="right">✅ Transaction &quot;transfer&#40;Bob, 30&#41;&quot; &lt;br&gt; ✅ Event &quot;Transfer&#40;Alice, Bob, 30&#41;&quot; &lt;br&gt; ✅ State root &#40;hash of current state&#41; &lt;br&gt; ❌ Old value &quot;100&quot; is gone&#33;</td></tr><tr><td align="right">1001</td><td align="right">Bob sends 10 to Carol</td><td align="right"><code>balance&#91;Alice&#93; &#61; 70</code> &#40;unchanged&#41;</td><td align="right">✅ Transaction &quot;transfer&#40;Carol, 10&#41;&quot; &lt;br&gt; ✅ Current state still available</td></tr></table>
+<p><strong>The blockchain stores:</strong></p>
+<ul>
+<li><p>✅ CURRENT state &#40;Alice has 70, Bob has 20, Carol has 10&#41;</p>
+</li>
+<li><p>✅ ALL transactions &#40;the history of what changed&#41;</p>
+</li>
+<li><p>✅ State root hashes &#40;proof that states were correct at each block&#41;</p>
+</li>
+</ul>
+<p><strong>The blockchain does NOT store:</strong></p>
+<ul>
+<li><p>❌ Every historical value &#40;that Alice once had 100&#41;</p>
+</li>
+<li><p>❌ Snapshots of complete state at every block</p>
+</li>
+</ul>
+<p><strong>To get historical state, you must:</strong> Replay all transactions from the beginning &#40;expensive&#33;&#41;. This is why services like Etherscan exist—they do this replay and index everything for you.</p>
+<p><strong>So when we say &quot;state is on the blockchain&quot;:</strong></p>
+<ul>
+<li><p>The <strong>current state</strong> lives on every node &#40;mutable, gets overwritten&#41;</p>
+</li>
+<li><p>The <strong>transaction history</strong> lives in blocks &#40;immutable, permanent&#41;</p>
+</li>
+<li><p>Historical states can be reconstructed by replaying transactions</p>
+</li>
+</ul>
+<p><strong>TL;DR:</strong> Blockchain &#61; append-only log of transactions &#43; current state. Old states aren&#39;t saved—they&#39;re reconstructed by replaying the transaction tape from the beginning.</p>
+</blockquote>
+<blockquote>
+<p><strong>Mathematical description: Why this saves massive space</strong></p>
+<p><strong>What the blockchain actually stores:</strong></p>
+</blockquote>
+\[\text{Blockchain} = \{s_{\text{current}}\} \cup \{f_1, f_2, f_3, \ldots, f_n\}\]
+<blockquote>
+<p>where:</p>
+<ul>
+<li><p>\(s_{\text{current}}\) &#61; current state &#40;ONE snapshot&#41;</p>
+</li>
+<li><p>\(f_1, f_2, \ldots, f_n\) &#61; sequence of functions applied &#40;transactions&#41;</p>
+</li>
+</ul>
+<p><strong>To get historical state at block \(k\):</strong></p>
+</blockquote>
+\[s_k = f_k \circ f_{k-1} \circ \cdots \circ f_2 \circ f_1(s_0)\]
+<blockquote>
+<p>&#40;Apply functions 1 through \(k\) to the genesis state \(s_0\)&#41;</p>
+<p><strong>Space comparison:</strong></p>
+<table><tr><th align="right">Storage Method</th><th align="right">Space Required</th><th align="right">Formula</th></tr><tr><td align="right"><strong>Naive &#40;store all states&#41;</strong></td><td align="right">Huge</td><td align="right">\(O(n \cdot \|S\|)\) where \(n\) &#61; blocks, \(\|S\|\) &#61; state size</td></tr><tr><td align="right"><strong>Blockchain &#40;store transitions&#41;</strong></td><td align="right">Small</td><td align="right">\(O(\|S\| + n \cdot \|f\|)\) where \(\|f\|\) &#61; transaction size</td></tr></table>
+<p><strong>Why it&#39;s efficient:</strong></p>
+<ul>
+<li><p>States are BIG &#40;millions of variables across all contracts&#41;</p>
+</li>
+<li><p>Transactions are SMALL &#40;just the changes: &quot;set balance&#91;Alice&#93; &#61; 70&quot;&#41;</p>
+</li>
+<li><p>\(\|f\| \ll \|S\|\) &#40;transaction size ≪ full state size&#41;</p>
+</li>
+</ul>
+<p><strong>Concrete example:</strong></p>
+<ul>
+<li><p>Full Ethereum state: ~100 GB</p>
+</li>
+<li><p>Average transaction: ~100 bytes</p>
+</li>
+<li><p>Blocks per day: ~7,000</p>
+</li>
+</ul>
+<p>Storing all states: \(7000 \times 100\text{ GB} = 700\text{ TB/day}\) 🤯</p>
+<p>Storing transactions: \(7000 \times 100\text{ bytes} \approx 0.7\text{ MB/day}\) ✅</p>
+<p><strong>The mathematical trick:</strong> Instead of storing \(s_1, s_2, s_3, \ldots\), store \(s_0\) and \(\Delta_1, \Delta_2, \Delta_3, \ldots\) &#40;the deltas/changes&#41;. To reconstruct any \(s_k\), apply the deltas.</p>
+<p>This is essentially <strong>event sourcing</strong> or <strong>delta encoding</strong>—a fundamental compression technique where you store operations instead of snapshots.</p>
+</blockquote>
+<blockquote>
+<p><strong>But if there are millions of contracts &#40;buildings&#41;, doesn&#39;t the blockchain &#40;city&#41; run out of space?</strong></p>
+<p><strong>Short answer: YES, it&#39;s already a huge problem&#33;</strong></p>
+<p>The blockchain DOES grow forever, and it IS hitting capacity limits. Here&#39;s the reality:</p>
+<p><strong>Current Ethereum stats &#40;as of 2024&#41;:</strong></p>
+<ul>
+<li><p>Full blockchain history: ~1&#43; TB &#40;all blocks and transactions ever&#41;</p>
+</li>
+<li><p>Current state: ~100-200 GB &#40;all contracts&#39; current variables&#41;</p>
+</li>
+<li><p>Growth rate: ~50-100 GB per year</p>
+</li>
+</ul>
+<p><strong>The capacity constraints:</strong></p>
+</blockquote>
+\[\text{Transactions per block} \leq \frac{G_{\text{block limit}}}{\text{avg gas per tx}}\]
+<blockquote>
+<p>Ethereum&#39;s block gas limit ≈ 30 million gas → only ~300-500 transactions per block</p>
+<p>With blocks every 12 seconds → only ~30-40 transactions per second max</p>
+<p>Compare to Visa: ~65,000 transactions per second. The blockchain can&#39;t keep up&#33;</p>
+<p><strong>Why it hasn&#39;t exploded yet:</strong></p>
+<ol>
+<li><p><strong>Gas fees act as a throttle</strong>: When demand is high, fees spike to \(50-\)100 per transaction, which prices out most users. It&#39;s economic rationing.</p>
+</li>
+<li><p><strong>Not everyone runs full nodes</strong>: Most people use &quot;light clients&quot; that only verify headers, not store everything. Only ~10,000 full nodes worldwide store the complete state.</p>
+</li>
+<li><p><strong>Layer 2 solutions</strong>: Networks like Arbitrum and Optimism batch thousands of transactions off-chain and only write summaries to Ethereum. This is like building &quot;apartment buildings&quot; &#40;L2s&#41; that share one &quot;foundation&quot; &#40;L1&#41;.</p>
+</li>
+<li><p><strong>State pruning</strong>: Some nodes delete old state and only keep recent data &#43; transaction history &#40;so they can reconstruct if needed&#41;.</p>
+</li>
+</ol>
+<p><strong>The scalability trilemma:</strong></p>
+<p>You can only pick 2 of 3:</p>
+<ul>
+<li><p><strong>Decentralization</strong> &#40;many nodes can participate&#41;</p>
+</li>
+<li><p><strong>Security</strong> &#40;hard to attack&#41;</p>
+</li>
+<li><p><strong>Scalability</strong> &#40;high throughput&#41;</p>
+</li>
+</ul>
+<p>Ethereum chose decentralization &#43; security → sacrificed scalability. If blocks were bigger, only supercomputers could run nodes, killing decentralization.</p>
+<p><strong>TL;DR:</strong> Yes, the blockchain is hitting capacity&#33; Solutions: charge more &#40;gas fees&#41;, move stuff off-chain &#40;Layer 2&#41;, or accept that not everyone stores everything &#40;light clients&#41;. There&#39;s no free lunch—storage is finite.</p>
+</blockquote>
+<p>Your contract&#39;s state is just a tuple of typed values:</p>
+\[S = V_1 \times V_2 \times \cdots \times V_n\]
+<p><strong>Example:</strong> A simple token contract</p>
+<pre><code class="language-julia">uint256 totalSupply;           // V₁ ∈ &#91;0, 2²⁵⁶-1&#93;
+mapping&#40;address &#61;&gt; uint256&#41;;   // V₂: Address → &#91;0, 2²⁵⁶-1&#93;</code></pre>
+<p>becomes:</p>
+\[S = \mathbb{Z}_{2^{256}} \times (A \to \mathbb{Z}_{2^{256}})\]
+<p>where \(A\) is the set of all Ethereum addresses &#40;20-byte values&#41;.</p>
+<p><strong>Intuition:</strong> State is just &quot;all the variables that persist between function calls.&quot; Mathematically, it&#39;s a product space of typed domains.</p>
+<hr />
+<h2 id="ol_start2_functions_as_state_transitions"><a href="#ol_start2_functions_as_state_transitions" class="header-anchor"><ol start="2">
+<li><p>Functions as State Transitions</p>
+</li>
+</ol>
+</a></h2>
+<p>Every function is a partial mapping:</p>
+\[f: S \times I \times C \rightharpoonup S\]
+<p>where:</p>
+<ul>
+<li><p>\(I\) &#61; function inputs &#40;parameters&#41;</p>
+</li>
+<li><p>\(C\) &#61; context &#40;msg.sender, msg.value, block.timestamp, etc.&#41;</p>
+</li>
+<li><p>\(\rightharpoonup\) means &quot;partial function&quot; &#40;can fail/revert&#41;</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>What the heck is <code>msg</code>?</strong></p>
+<p><code>msg</code> is short for <strong>message</strong>—as in, the transaction message that called your function. Think of it like an envelope that arrives at your contract&#39;s door. The envelope contains:</p>
+<ul>
+<li><p>Who sent it &#40;<code>msg.sender</code>&#41;</p>
+</li>
+<li><p>How much money they included &#40;<code>msg.value</code>&#41;</p>
+</li>
+<li><p>What they want you to do &#40;the function call itself&#41;</p>
+</li>
+</ul>
+<p><strong>Why &quot;message&quot;?</strong> Because in blockchain terminology, every transaction is literally a &quot;message&quot; being passed between accounts. When you call a function, you&#39;re sending a message to the contract.</p>
+<p>Here&#39;s what <code>msg</code> and state <code>s</code> contain:</p>
+<table><tr><th align="right"><strong><code>msg</code> &#40;the envelope&#41;</strong></th><th align="right"><strong>What it is</strong></th><th align="right"><strong>Type</strong></th></tr><tr><td align="right"><code>msg.sender</code></td><td align="right">Who called this function</td><td align="right"><code>address</code></td></tr><tr><td align="right"><code>msg.value</code></td><td align="right">How much ETH they sent &#40;in wei&#41;</td><td align="right"><code>uint256</code></td></tr><tr><td align="right"><code>msg.data</code></td><td align="right">Raw bytes of the function call</td><td align="right"><code>bytes</code></td></tr><tr><td align="right"><code>msg.sig</code></td><td align="right">First 4 bytes of <code>msg.data</code> &#40;function selector&#41;</td><td align="right"><code>bytes4</code></td></tr></table>
+<table><tr><th align="right"><strong><code>block</code> &#40;the context&#41;</strong></th><th align="right"><strong>What it is</strong></th><th align="right"><strong>Type</strong></th></tr><tr><td align="right"><code>block.timestamp</code></td><td align="right">When this block was mined &#40;Unix time&#41;</td><td align="right"><code>uint256</code></td></tr><tr><td align="right"><code>block.number</code></td><td align="right">Current block height</td><td align="right"><code>uint256</code></td></tr><tr><td align="right"><code>block.coinbase</code></td><td align="right">Address of miner who mined this block</td><td align="right"><code>address</code></td></tr></table>
+<table><tr><th align="right"><strong>State <code>s</code> &#40;your variables&#41;</strong></th><th align="right"><strong>What it is</strong></th><th align="right"><strong>Example</strong></th></tr><tr><td align="right">Storage variables</td><td align="right">Stuff you declared in the contract</td><td align="right"><code>uint256 balance</code></td></tr><tr><td align="right">Mappings</td><td align="right">Your hash tables</td><td align="right"><code>mapping&#40;address &#61;&gt; uint&#41;</code></td></tr><tr><td align="right">Arrays</td><td align="right">Your lists</td><td align="right"><code>address&#91;&#93; users</code></td></tr></table>
+<p><strong>Key insight:</strong> </p>
+<ul>
+<li><p><strong><code>msg</code> &#61; temporary info about THIS transaction</strong> &#40;who&#39;s knocking, what they brought&#41;</p>
+</li>
+<li><p><strong><code>s</code> &#61; permanent data that survives between transactions</strong> &#40;the contract&#39;s memory&#41;</p>
+</li>
+</ul>
+<p>Every function gets both: the state it&#39;s modifying &#40;<code>s</code>&#41; and the context of who&#39;s doing it &#40;<code>msg</code>&#41;. That&#39;s why functions need both to make decisions—you need to know &quot;what&#39;s in the database&quot; AND &quot;who&#39;s asking to change it.&quot;</p>
+</blockquote>
+<blockquote>
+<p><strong>What does <code>require&#40;&#41;</code> actually do?</strong></p>
+<p><code>require&#40;&#41;</code> is <strong>NOT</strong> like <code>@assert</code> in Julia. It&#39;s way more aggressive.</p>
+<p>In Julia, if an assertion fails, you get an error but the program might continue depending on how you handle it. In Solidity, <code>require&#40;&#41;</code> is a <strong>hard stop that nukes the entire transaction</strong>:</p>
+</blockquote>
+<pre><code class="language-solidity">&gt; function transfer&#40;address to, uint256 amount&#41; public &#123;
+&gt;     require&#40;balance&#91;msg.sender&#93; &gt;&#61; amount, &quot;Not enough balance&quot;&#41;;
+&gt;     balance&#91;msg.sender&#93; -&#61; amount;  // ← This NEVER runs if require fails
+&gt;     balance&#91;to&#93; &#43;&#61; amount;          // ← This NEVER runs if require fails
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p><strong>What happens if <code>require&#40;&#41;</code> fails:</strong></p>
+<ol>
+<li><p><strong>Execution stops immediately</strong> &#40;doesn&#39;t continue to lines below&#41;</p>
+</li>
+<li><p><strong>All state changes are reverted</strong> &#40;like they never happened&#41;</p>
+</li>
+<li><p><strong>Gas used so far is NOT refunded</strong> &#40;you paid for the computation up to the failure&#41;</p>
+</li>
+<li><p><strong>An error message is returned</strong> &#40;the string you provided&#41;</p>
+</li>
+</ol>
+<p><strong>Think of it like this:</strong></p>
+<ul>
+<li><p>Julia&#39;s <code>@assert</code>: &quot;Hey, something&#39;s wrong, let me tell you&quot;</p>
+</li>
+<li><p>Solidity&#39;s <code>require&#40;&#41;</code>: &quot;STOP EVERYTHING. Undo all changes. This transaction never happened.&quot;</p>
+</li>
+</ul>
+<p><strong>Why so extreme?</strong> Because blockchain transactions are atomic—either everything succeeds or nothing does. No partial states. If you try to transfer more than you have, the blockchain can&#39;t be left in a &quot;half-transferred&quot; state. It&#39;s all-or-nothing.</p>
+<p>Mathematically, it makes functions <strong>partial</strong> &#40;the \(\rightharpoonup\) symbol above&#41;: they only produce output for valid inputs, otherwise they&#39;re undefined &#40;revert&#41;.</p>
+</blockquote>
+<p><strong>Example:</strong> Transfer function</p>
+<pre><code class="language-solidity">function transfer&#40;address to, uint256 amount&#41; public &#123;
+    require&#40;balances&#91;msg.sender&#93; &gt;&#61; amount&#41;;
+    balances&#91;msg.sender&#93; -&#61; amount;
+    balances&#91;to&#93; &#43;&#61; amount;
+&#125;</code></pre>
+<p>becomes:</p>
+\[\text{transfer}(s, \text{to}, \text{amount}, c) = s'\]
+<p>where:</p>
+<ul>
+<li><p>Precondition: \(s.\text{balances}[c.\text{sender}] \geq \text{amount}\)</p>
+</li>
+<li><p>Effect: </p>
+<ul>
+<li><p>\(s'.\text{balances}[c.\text{sender}] = s.\text{balances}[c.\text{sender}] - \text{amount}\)</p>
+</li>
+<li><p>\(s'.\text{balances}[\text{to}] = s.\text{balances}[\text{to}] + \text{amount}\)</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Intuition:</strong> Functions are just &quot;before → after&quot; transformations with conditions. If the condition fails, the transformation doesn&#39;t happen &#40;revert&#41;.</p>
+<hr />
+<h2 id="ol_start3_access_control_as_predicates"><a href="#ol_start3_access_control_as_predicates" class="header-anchor"><ol start="3">
+<li><p>Access Control as Predicates</p>
+</li>
+</ol>
+</a></h2>
+<blockquote>
+<p><strong>Access control is just a yes/no gate: &quot;Can you come in?&quot;</strong></p>
+<p>Think of it like a bouncer at a club. You walk up with your ID &#40;your address&#41; and some info &#40;how much money you have, what time it is&#41;. The bouncer checks a simple rule and decides: let you in &#40;true&#41; or kick you out &#40;false&#41;.</p>
+<p>Mathematically, it&#39;s a function:</p>
+</blockquote>
+\[\tau: \text{Context} \to \{\text{true}, \text{false}\}\]
+<blockquote>
+<p><strong>Context</strong> &#61; everything about this moment:</p>
+<ul>
+<li><p>Who&#39;s calling? &#40;<code>msg.sender</code>&#41;</p>
+</li>
+<li><p>How much ETH did they send? &#40;<code>msg.value</code>&#41;</p>
+</li>
+<li><p>What time is it? &#40;<code>block.timestamp</code>&#41;</p>
+</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<p><code>onlyOwner</code> modifier → \(\tau(c) = (c.\text{sender} = \text{owner})\)</p>
+<ul>
+<li><p>&quot;Are you the owner? Yes → come in. No → get lost.&quot;</p>
+</li>
+</ul>
+<p><code>onlyAdmin</code> modifier → \(\tau(c) = \text{admins}[c.\text{sender}]\)</p>
+<ul>
+<li><p>&quot;Are you on the admin list? Check the mapping.&quot;</p>
+</li>
+</ul>
+<p><code>payable</code> function → \(\tau(c) = (c.\text{value} > 0)\)</p>
+<ul>
+<li><p>&quot;Did you bring money? No money, no entry.&quot;</p>
+</li>
+</ul>
+<p><strong>The key insight:</strong> Access control isn&#39;t some special mechanism—it&#39;s just a boolean check that happens before your function runs. If the check fails, the whole transaction reverts &#40;like you never tried&#41;.</p>
+<p>So yes, they&#39;re literally just booleans. But instead of checking one variable, you&#39;re checking properties of &quot;who&#39;s calling and under what conditions.&quot;</p>
+</blockquote>
+<hr />
+<h2 id="ol_start4_gas_as_a_resource_constraint"><a href="#ol_start4_gas_as_a_resource_constraint" class="header-anchor"><ol start="4">
+<li><p>Gas as a Resource Constraint</p>
+</li>
+</ol>
+</a></h2>
+<p>Every operation has a cost:</p>
+\[\mathcal{G}: \text{Operation} \to \mathbb{N}\]
+<p>Examples:</p>
+<ul>
+<li><p>ADD: \(\mathcal{G}(\text{ADD}) = 3\)</p>
+</li>
+<li><p>SSTORE &#40;storage write&#41;: \(\mathcal{G}(\text{SSTORE}) = 20000\) &#40;cold&#41; or \(5000\) &#40;warm&#41;</p>
+</li>
+<li><p>Memory expansion: \(\mathcal{G}(n) \propto n^2\) &#40;quadratic cost&#41;</p>
+</li>
+</ul>
+<p>A transaction has gas limit \(G_{\max}\), and the function must satisfy:</p>
+\[\sum_{i=1}^{k} \mathcal{G}(\text{op}_i) \leq G_{\max}\]
+<p><strong>Intuition:</strong> Gas is like &quot;CPU credits.&quot; Every instruction spends some. Storage is super expensive because all nodes must keep it forever.</p>
+<hr />
+<h2 id="ol_start5_data_locations_different_cost_models"><a href="#ol_start5_data_locations_different_cost_models" class="header-anchor"><ol start="5">
+<li><p>Data Locations: Different Cost Models</p>
+</li>
+</ol>
+</a></h2>
+<p>Think of data locations as different memory hierarchies:</p>
+<table><tr><th align="right">Location</th><th align="right">Access Cost</th><th align="right">Persistence</th><th align="right">Mathematical Model</th></tr><tr><td align="right">Storage</td><td align="right">High &#40;\(\approx 20k\) gas&#41;</td><td align="right">Permanent</td><td align="right">\(S\) &#40;state space&#41;</td></tr><tr><td align="right">Memory</td><td align="right">Medium &#40;\(\approx 3\) gas&#41;</td><td align="right">Temporary</td><td align="right">\(M\) &#40;stack/heap during execution&#41;</td></tr><tr><td align="right">Calldata</td><td align="right">Low &#40;\(\approx 0\) gas&#41;</td><td align="right">Read-only input</td><td align="right">\(I\) &#40;immutable input&#41;</td></tr></table>
+<p><strong>Example:</strong> Array operations</p>
+<pre><code class="language-solidity">function badLoop&#40;uint&#91;&#93; memory data&#41; public &#123;
+    for &#40;uint i &#61; 0; i &lt; data.length; i&#43;&#43;&#41; &#123;
+        myArray.push&#40;data&#91;i&#93;&#41;;  // Each push: ~20k gas
+    &#125;
+&#125;</code></pre>
+<p>Cost: \(\mathcal{G}_{\text{bad}}(n) = 20000n\)</p>
+<pre><code class="language-solidity">function goodLoop&#40;uint&#91;&#93; calldata data&#41; external &#123;
+    uint len &#61; data.length;      // Cache length: ~100 gas
+    for &#40;uint i &#61; 0; i &lt; len; i&#43;&#43;&#41; &#123;
+        myArray.push&#40;data&#91;i&#93;&#41;;   // Still 20k per push
+    &#125;
+&#125;</code></pre>
+<p>Cost: \(\mathcal{G}_{\text{good}}(n) = 100 + 20000n\) &#40;slightly better, but the real win is using <code>calldata</code> over <code>memory</code>&#41;</p>
+<p><strong>Intuition:</strong> Minimize state writes &#40;storage&#41;. Use memory for temporary stuff. Use calldata for inputs you don&#39;t need to modify.</p>
+<hr />
+<h2 id="ol_start6_mappings_as_sparse_arrays"><a href="#ol_start6_mappings_as_sparse_arrays" class="header-anchor"><ol start="6">
+<li><p>Mappings as Sparse Arrays</p>
+</li>
+</ol>
+</a></h2>
+<p>A mapping is a hash table with default values:</p>
+\[\text{mapping}: K \to V \quad \text{with default} \quad v_0\]
+<p>Mathematically:</p>
+\[m: K \to V \text{ where } m(k) = \begin{cases} \text{stored value} & \text{if } k \text{ was written} \\ v_0 & \text{otherwise} \end{cases}\]
+<p><strong>Key insight:</strong> Mappings don&#39;t store empty entries. Lookup is always \(O(1)\) with fixed gas cost.</p>
+<pre><code class="language-solidity">mapping&#40;address &#61;&gt; uint256&#41; public balances;</code></pre>
+<p>This is:</p>
+\[\text{balances}: A \to \mathbb{Z}_{2^{256}} \text{ with default } 0\]
+<p><strong>Intuition:</strong> Mappings are like infinite sparse arrays where unwritten values cost nothing to store. That&#39;s why they&#39;re cheap and can&#39;t be iterated.</p>
+<hr />
+<h2 id="ol_start7_events_as_projections"><a href="#ol_start7_events_as_projections" class="header-anchor"><ol start="7">
+<li><p>Events as Projections</p>
+</li>
+</ol>
+</a></h2>
+<p>Events don&#39;t modify state—they&#39;re just logged outputs:</p>
+\[\text{event}: S \times C \to \text{Log}\]
+<p>They project relevant data to an external append-only log.</p>
+<pre><code class="language-solidity">event Transfer&#40;address indexed from, address indexed to, uint256 amount&#41;;
+emit Transfer&#40;msg.sender, to, amount&#41;;</code></pre>
+<p>This is:</p>
+\[\pi_{\text{Transfer}}(s, c) = (c.\text{sender}, \text{to}, \text{amount})\]
+<p>appended to the transaction log.</p>
+<p><strong>Intuition:</strong> Events are like printf statements that get saved to an append-only database. They&#39;re cheap because they don&#39;t affect the state \(S\) that all nodes must maintain.</p>
+<hr />
+<h2 id="ol_start8_inheritance_as_function_composition"><a href="#ol_start8_inheritance_as_function_composition" class="header-anchor"><ol start="8">
+<li><p>Inheritance as Function Composition</p>
+</li>
+</ol>
+</a></h2>
+<p>Inheritance combines multiple contracts:</p>
+\[\mathcal{C}_{\text{child}} = \mathcal{C}_{\text{parent}} \oplus \mathcal{C}_{\text{override}}\]
+<p>where \(\oplus\) means &quot;merge with override.&quot;</p>
+<pre><code class="language-solidity">contract Animal &#123;
+    function speak&#40;&#41; virtual returns &#40;string&#41; &#123; return &quot;...&quot;; &#125;
+&#125;
+contract Dog is Animal &#123;
+    function speak&#40;&#41; override returns &#40;string&#41; &#123; return &quot;Woof&quot;; &#125;
+&#125;</code></pre>
+<p>becomes:</p>
+\[\text{Dog.speak} = \text{override}(\text{Animal.speak})\]
+<p><strong>Intuition:</strong> Child contracts replace parent functions. The combined state space is the union of all inherited state variables.</p>
+<hr />
+<h2 id="ol_start9_the_fundamental_design_patterns"><a href="#ol_start9_the_fundamental_design_patterns" class="header-anchor"><ol start="9">
+<li><p>The Fundamental Design Patterns</p>
+</li>
+</ol>
+</a></h2>
+<h3 id="pattern_1_checks-effects-interactions"><a href="#pattern_1_checks-effects-interactions" class="header-anchor">Pattern 1: Checks-Effects-Interactions</a></h3>
+<p>Every function should follow:</p>
+<ol>
+<li><p><strong>Check:</strong> \(\tau(s, c)\) &#40;verify preconditions&#41;</p>
+</li>
+<li><p><strong>Effect:</strong> \(s' = f(s)\) &#40;update state&#41;</p>
+</li>
+<li><p><strong>Interact:</strong> external calls &#40;can fail, but state is safe&#41;</p>
+</li>
+</ol>
+<p>Why? To prevent reentrancy: if you interact before updating state, an external contract can call back and exploit the old state.</p>
+\[\text{function } f(s, c) = \begin{cases}
+s & \text{if } \neg\tau(s,c) \\
+\text{interact}(s') & \text{where } s' = \text{effect}(s)
+\end{cases}\]
+<h3 id="pattern_2_withdrawal_pattern"><a href="#pattern_2_withdrawal_pattern" class="header-anchor">Pattern 2: Withdrawal Pattern</a></h3>
+<p>Instead of push: \(s' = s[\text{recipient.balance} += x]\) &#40;dangerous, can fail&#41;</p>
+<p>Use pull: </p>
+<ul>
+<li><p>\(s' = s[\text{pending}[\text{recipient}] += x]\)</p>
+</li>
+<li><p>Let recipient call: \(\text{withdraw}() \to s'' = s'[\text{pending}[\text{sender}] = 0]\)</p>
+</li>
+</ul>
+<p><strong>Intuition:</strong> Don&#39;t send money to arbitrary contracts directly &#40;they might reject or reenter&#41;. Let them pull it themselves.</p>
+<hr />
+<h2 id="ol_start10_the_security_invariant"><a href="#ol_start10_the_security_invariant" class="header-anchor"><ol start="10">
+<li><p>The Security Invariant</p>
+</li>
+</ol>
+</a></h2>
+<p>A secure contract maintains invariants:</p>
+\[\forall f \in F, \forall s \in S, \forall c \in C: \quad \mathcal{I}(s) \implies \mathcal{I}(f(s, c))\]
+<p>where \(\mathcal{I}\) is an invariant predicate.</p>
+<p><strong>Example:</strong> Token total supply invariant</p>
+\[\mathcal{I}(s) \equiv \sum_{a \in A} s.\text{balances}[a] = s.\text{totalSupply}\]
+<p>Every function must preserve this.</p>
+<p><strong>Intuition:</strong> Invariants are properties that should always be true. Functions are correct if they never break these properties.</p>
+<hr />
+<h2 id="the_synthesis"><a href="#the_synthesis" class="header-anchor">The Synthesis</a></h2>
+<p>Putting it together, Solidity is:</p>
+\[\boxed{\text{Smart Contract} = \text{State Machine} + \text{Access Control} + \text{Cost Model}}\]
+<ul>
+<li><p><strong>State Machine:</strong> \(S\) &#40;storage&#41;, \(F\) &#40;functions as transition operators&#41;</p>
+</li>
+<li><p><strong>Access Control:</strong> \(\tau\) &#40;predicates on msg.sender&#41;</p>
+</li>
+<li><p><strong>Cost Model:</strong> \(\mathcal{G}\) &#40;gas costs force you to optimize&#41;</p>
+</li>
+</ul>
+<p>Everything else—events, modifiers, inheritance, patterns—is just syntactic sugar over this core model.</p>
+<hr />
+<h2 id="why_this_helps"><a href="#why_this_helps" class="header-anchor">Why This Helps</a></h2>
+<p>Instead of memorizing syntax like <code>public</code>, <code>memory</code>, <code>payable</code>, you understand:</p>
+<ul>
+<li><p><code>public</code> &#61; \(\tau(c) = \text{true}\) &#40;no access restriction&#41;</p>
+</li>
+<li><p><code>memory</code> &#61; temporary data in \(M\), not in \(S\)</p>
+</li>
+<li><p><code>payable</code> &#61; function accepts \(c.\text{value} > 0\)</p>
+</li>
+</ul>
+<p>The math reveals the <strong>structure beneath the syntax</strong>. Once you see contracts as state machines with cost constraints, the language becomes way less arbitrary.</p>
+<hr />
+<p><strong>Bottom line:</strong> Solidity is just applied automata theory with a price tag. Every line either changes state, restricts access, or costs gas. That&#39;s it.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 27, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

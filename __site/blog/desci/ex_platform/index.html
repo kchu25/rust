@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Building a Biology Experiment Platform: Learning from DeSci's UX Problem</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="building_a_biology_experiment_platform_learning_from_descis_ux_problem"><a href="#building_a_biology_experiment_platform_learning_from_descis_ux_problem" class="header-anchor">Building a Biology Experiment Platform: Learning from DeSci&#39;s UX Problem</a></h1>
+<p><strong>TL;DR:</strong> Decentralized Science &#40;DeSci&#41; has raised millions but failed to attract scientists because of terrible UX. The opportunity isn&#39;t building &quot;another blockchain&quot;—it&#39;s building the abstraction layer that hides blockchain complexity while keeping its benefits &#40;transparent funding, automatic attribution, immutable protocols&#41;. This guide covers the technical architecture, reward mechanisms, implementation roadmap, and common pitfalls.</p>
+<hr />
+<h2 id="the_state_of_desci_why_its_not_working"><a href="#the_state_of_desci_why_its_not_working" class="header-anchor">The State of DeSci: Why It&#39;s Not Working</a></h2>
+<p><strong>BIO Protocol just launched</strong> &#40;Jan 3, 2025&#41; with Binance backing. VitaDAO has funded 10M&#43; in research since 2021. Market caps look impressive in crypto terms.</p>
+<p><strong>But here&#39;s the problem:</strong> You&#39;ve never heard of them. Neither have 99&#37; of scientists.</p>
+<h3 id="the_brutal_truth"><a href="#the_brutal_truth" class="header-anchor">The Brutal Truth</a></h3>
+<p>VitaDAO has 6&#43; bioDAOs, &#36;20M&#43; in treasuries, ecosystem market cap over &#36;200M. Sounds big? The NIA&#39;s 2023 budget for aging biology alone was ~&#36;400M—40x VitaDAO&#39;s <em>entire history</em>.</p>
+<p><strong>Why scientists don&#39;t use it:</strong></p>
+<ol>
+<li><p>Need to: buy crypto → install MetaMask → understand gas fees → navigate Discord → stake tokens → comprehend vesting schedules</p>
+</li>
+<li><p>Scientists unfamiliar with Web3 find blockchain difficult to understand and use</p>
+</li>
+<li><p>Traditional academia views DeSci with skepticism, needing proof beyond hype through projects with real impact</p>
+</li>
+<li><p>No drugs in Phase 2 trials yet to prove the model works sustainably</p>
+</li>
+</ol>
+<p><strong>The UX gap is enormous.</strong> An NIH grant application is painful, but doesn&#39;t require learning about L2 rollups.</p>
+<h2 id="what_you_should_actually_build"><a href="#what_you_should_actually_build" class="header-anchor">What You Should Actually Build</a></h2>
+<p>Forget &quot;another blockchain.&quot; The tech exists. What&#39;s missing is a bridge between crypto and scientists.</p>
+<h3 id="direction_1_the_abstraction_layer_recommended"><a href="#direction_1_the_abstraction_layer_recommended" class="header-anchor">Direction 1: The Abstraction Layer &#40;Recommended&#41;</a></h3>
+<p><strong>Build: &quot;Stripe for DeSci&quot;</strong></p>
+<p>The platform that makes blockchain invisible to scientists while keeping its benefits:</p>
+<p><strong>Core principle:</strong> Scientists use email. Blockchain runs in the background.</p>
+<pre><code class="language-julia">Scientist experience:          Behind the scenes:
+─────────────────────         ─────────────────
+1. Sign in with email   →     Account abstraction wallet created
+2. Submit experiment    →     Protocol uploaded to Arweave  
+3. Get USD funding      →     Smart contract distributes tokens
+4. View results         →     Data pulled from IPFS
+5. Receive payment      →     Auto-converted to bank account</code></pre>
+<p><strong>Key features:</strong></p>
+<ul>
+<li><p><strong>Fiat on/off ramps</strong>: Credit card payments, ACH transfers, bank withdrawals</p>
+</li>
+<li><p><strong>Email-based identity</strong>: No MetaMask, no seed phrases visible to users</p>
+</li>
+<li><p><strong>Dollar-denominated</strong>: Show &quot;&#36;5,000 reward pool&quot; not &quot;2.3 ETH&quot;</p>
+</li>
+<li><p><strong>Social login</strong>: Google/ORCID authentication</p>
+</li>
+<li><p><strong>Automatic compliance</strong>: Tax forms, W-9s, institutional approvals handled</p>
+</li>
+</ul>
+<p><strong>Tech stack:</strong></p>
+<ul>
+<li><p><strong>Account Abstraction</strong>: Biconomy or ZeroDev for gasless transactions</p>
+</li>
+<li><p><strong>Wallet abstraction</strong>: Magic.link or Web3Auth &#40;email → wallet&#41;</p>
+</li>
+<li><p><strong>Fiat rails</strong>: Stripe for onboarding, Coinbase Commerce or Circle for crypto conversion</p>
+</li>
+<li><p><strong>Backend</strong>: Next.js with Privy for authentication</p>
+</li>
+<li><p><strong>Smart contracts</strong>: Simple, audited contracts on Arbitrum</p>
+</li>
+<li><p><strong>Storage</strong>: Arweave for protocols &#40;abstracted via API&#41;</p>
+</li>
+</ul>
+<p><strong>The pitch to scientists:</strong> &quot;Submit experiments, get paid in dollars. That&#39;s it.&quot;</p>
+<h3 id="direction_2_the_hybrid_model"><a href="#direction_2_the_hybrid_model" class="header-anchor">Direction 2: The Hybrid Model</a></h3>
+<p><strong>Build: Traditional platform &#43; blockchain backbone</strong></p>
+<p>Start as a normal web app, gradually reveal blockchain benefits:</p>
+<p><strong>Phase 1 &#40;Months 1-6&#41;:</strong> Pure Web2</p>
+<ul>
+<li><p>Scientists use regular forms and dashboards</p>
+</li>
+<li><p>Store everything in PostgreSQL</p>
+</li>
+<li><p>Process payments via Stripe</p>
+</li>
+<li><p>Build user base, prove value</p>
+</li>
+</ul>
+<p><strong>Phase 2 &#40;Months 6-12&#41;:</strong> Silent blockchain integration</p>
+<ul>
+<li><p>Mirror critical data to blockchain</p>
+</li>
+<li><p>Issue &quot;impact certificates&quot; as NFTs &#40;don&#39;t call them NFTs&#41;</p>
+</li>
+<li><p>Enable &quot;transparent funding&quot; view &#40;optional&#41;</p>
+</li>
+</ul>
+<p><strong>Phase 3 &#40;Year 2&#43;&#41;:</strong> Optional crypto features</p>
+<ul>
+<li><p>Let early adopters earn governance tokens</p>
+</li>
+<li><p>Enable peer-to-peer funding in crypto</p>
+</li>
+<li><p>Launch marketplace for experiment data</p>
+</li>
+</ul>
+<p><strong>Why this works:</strong></p>
+<ul>
+<li><p>No scary crypto UX to start</p>
+</li>
+<li><p>Blockchain provides verifiability without friction</p>
+</li>
+<li><p>Scientists can ignore crypto entirely if they want</p>
+</li>
+<li><p>Appeals to traditional institutions</p>
+</li>
+</ul>
+<h3 id="direction_3_vertical_integration"><a href="#direction_3_vertical_integration" class="header-anchor">Direction 3: Vertical Integration</a></h3>
+<p><strong>Build: Experiment-specific platform, not general DeSci</strong></p>
+<p>Pick ONE biology domain and go deep:</p>
+<p><strong>Example: Longevity Experiments</strong></p>
+<ul>
+<li><p>Target: At-home aging biomarker experiments &#40;blood panels, wearable data, cognitive tests&#41;</p>
+</li>
+<li><p>Users: Biohackers, citizen scientists, longevity enthusiasts</p>
+</li>
+<li><p>Advantage: This audience already understands crypto and is willing to self-experiment</p>
+</li>
+<li><p>Concrete offering: &quot;Track your biological age monthly. Get paid &#36;50 per data submission. See how interventions affect your aging markers.&quot;</p>
+</li>
+</ul>
+<p><strong>Example: Replication Crisis Platform</strong></p>
+<ul>
+<li><p>Target: Psychology/social science replication studies</p>
+</li>
+<li><p>Users: Academic labs needing quick replication funding, graduate students looking for projects</p>
+</li>
+<li><p>Advantage: Clear problem &#40;60&#37;&#43; of studies don&#39;t replicate&#41;, measurable impact</p>
+</li>
+<li><p>Concrete offering: &quot;Pick a famous study to replicate. Get &#36;2,000 funding. Publish results regardless of outcome.&quot;</p>
+</li>
+</ul>
+<p><strong>Example: Microbiome Studies</strong></p>
+<ul>
+<li><p>Target: Gut microbiome interventions with n-of-1 trials</p>
+</li>
+<li><p>Users: Health-conscious consumers, IBS/IBD patients seeking alternatives</p>
+</li>
+<li><p>Advantage: Easy to participate &#40;stool samples, diet logs&#41;, clear metrics &#40;microbiome diversity scores&#41;</p>
+</li>
+<li><p>Concrete offering: &quot;Test how probiotics affect YOUR gut. Submit 3 samples over 6 weeks. Earn &#36;200 &#43; personalized results.&quot;</p>
+</li>
+</ul>
+<p><strong>Why vertical works:</strong></p>
+<ul>
+<li><p>Solve one problem really well</p>
+</li>
+<li><p>Community is tight-knit, easier to reach</p>
+</li>
+<li><p>Build reputation before expanding</p>
+</li>
+<li><p>Can customize UX for specific needs</p>
+</li>
+</ul>
+<h2 id="the_reward_mechanism_abstracted"><a href="#the_reward_mechanism_abstracted" class="header-anchor">The Reward Mechanism &#40;Abstracted&#41;</a></h2>
+<p>Keep the sophisticated tokenomics, hide the complexity.</p>
+<h3 id="what_scientists_see"><a href="#what_scientists_see" class="header-anchor">What Scientists See</a></h3>
+<p>&quot;Complete this experiment and earn &#36;500-&#36;2,000 based on result quality&quot;</p>
+<p><strong>Quality determined by:</strong></p>
+<ul>
+<li><p>Completion rate: Did you finish all steps?</p>
+</li>
+<li><p>Data completeness: Did you provide all measurements?</p>
+</li>
+<li><p>Peer review score: How do reviewers rate your methodology?</p>
+</li>
+<li><p>Result consensus: How close are your results to others?</p>
+</li>
+</ul>
+<h3 id="what_actually_happens_under_the_hood"><a href="#what_actually_happens_under_the_hood" class="header-anchor">What Actually Happens &#40;Under the Hood&#41;</a></h3>
+\[R_i = B \cdot \left(\frac{Q_i}{Q_{max}}\right) \cdot \left(1 + \frac{C_i}{10}\right) \cdot M\]
+<p>Where:</p>
+<ul>
+<li><p>\(B\) &#61; Base reward pool &#40;total funds available for this experiment&#41;</p>
+</li>
+<li><p>\(Q_i\) &#61; Quality score &#40;peer-reviewed, 0-10&#41; — how well did you follow the protocol?</p>
+</li>
+<li><p>\(C_i\) &#61; Consensus score &#40;0-10&#41; — how closely do your results match other participants? Calculated using statistical clustering: if 8/10 participants find the same result and you&#39;re one of them, high consensus. If you&#39;re an outlier, lower score &#40;but not zero—outliers might be discovering something real&#41;</p>
+</li>
+<li><p>\(M\) &#61; Experiment difficulty multiplier &#40;complex multi-week studies pay more than simple surveys&#41;</p>
+</li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<pre><code class="language-javascript">// Behind the scenes
+async function calculateReward&#40;participantId, experimentId&#41; &#123;
+  const quality &#61; await getPeerReviewScore&#40;participantId&#41;;
+  const consensus &#61; await calculateConsensus&#40;experimentId&#41;;
+  const multiplier &#61; experiments&#91;experimentId&#93;.difficulty;
+  
+  const reward &#61; BASE_REWARD * &#40;quality/10&#41; * &#40;1 &#43; consensus/10&#41; * multiplier;
+  
+  // Convert to USD and pay via Stripe
+  await payParticipant&#40;participantId, reward, &#39;USD&#39;&#41;;
+&#125;</code></pre>
+<p><strong>Anti-gaming measures:</strong></p>
+<ul>
+<li><p>Require institutional email or ORCID verification</p>
+</li>
+<li><p>Stake small deposit &#40;returned on completion&#41;</p>
+</li>
+<li><p>Ban accounts with repeated low-quality submissions</p>
+</li>
+<li><p>Gradual reward increases for consistent participants</p>
+</li>
+</ul>
+<h2 id="technical_architecture"><a href="#technical_architecture" class="header-anchor">Technical Architecture</a></h2>
+<h3 id="the_minimalist_stack"><a href="#the_minimalist_stack" class="header-anchor">The Minimalist Stack</a></h3>
+<p><strong>Frontend &#40;what scientists interact with&#41;:</strong></p>
+<ul>
+<li><p>Next.js or SvelteKit</p>
+</li>
+<li><p>TailwindCSS for clean, academic-style UI</p>
+</li>
+<li><p>No wallet connection UI needed</p>
+</li>
+<li><p>Hosted on Vercel/Netlify</p>
+</li>
+</ul>
+<p><strong>Authentication &amp; Wallets:</strong></p>
+<ul>
+<li><p>Privy or Dynamic for email-based auth</p>
+</li>
+<li><p>Account abstraction &#40;Biconomy&#41; for gasless transactions</p>
+</li>
+<li><p>Each user gets a non-custodial wallet they never see</p>
+</li>
+</ul>
+<p><strong>Backend:</strong></p>
+<ul>
+<li><p>Next.js API routes or Express</p>
+</li>
+<li><p>PostgreSQL for user data, metadata</p>
+</li>
+<li><p>Redis for caching</p>
+</li>
+<li><p>Hosted on Railway, Render, or Fly.io</p>
+</li>
+</ul>
+<p><strong>Blockchain &#40;invisible to users&#41;:</strong></p>
+<ul>
+<li><p>Arbitrum or Base for low costs</p>
+</li>
+<li><p>Simple smart contracts for escrow and rewards</p>
+</li>
+<li><p>The Graph for indexing &#40;optional&#41;</p>
+</li>
+<li><p>Events logged to traditional database for speed</p>
+</li>
+</ul>
+<p><strong>Storage:</strong></p>
+<ul>
+<li><p>Arweave via Bundlr for experiment protocols</p>
+</li>
+<li><p>IPFS &#40;via Pinata&#41; for result data</p>
+</li>
+<li><p>S3 for user uploads initially &#40;mirror to IPFS later&#41;</p>
+</li>
+</ul>
+<p><strong>Payments:</strong></p>
+<ul>
+<li><p>Stripe for collecting fiat</p>
+</li>
+<li><p>Circle USDC for stable crypto payments</p>
+</li>
+<li><p>Coinbase Commerce for crypto-savvy users</p>
+</li>
+<li><p>Auto-convert between fiat and crypto</p>
+</li>
+</ul>
+<h3 id="smart_contract_architecture_simplified"><a href="#smart_contract_architecture_simplified" class="header-anchor">Smart Contract Architecture &#40;Simplified&#41;</a></h3>
+<pre><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract ExperimentPlatform &#123;
+    struct Experiment &#123;
+        address creator;
+        string protocolHash;      // Arweave reference
+        uint256 rewardPool;
+        uint256 minParticipants;
+        uint256 deadline;
+        bool active;
+    &#125;
+    
+    struct Participant &#123;
+        address wallet;
+        string resultHash;        // IPFS reference
+        uint256 qualityScore;     // Set by peer review
+        bool rewarded;
+    &#125;
+    
+    mapping&#40;uint256 &#61;&gt; Experiment&#41; public experiments;
+    mapping&#40;uint256 &#61;&gt; Participant&#91;&#93;&#41; public participants;
+    
+    // Minimal, auditable functions only
+    function createExperiment&#40;string memory _hash, uint256 _minPart&#41; external payable;
+    function submitResult&#40;uint256 _expId, string memory _resultHash&#41; external;
+    function distributeRewards&#40;uint256 _expId, uint256&#91;&#93; memory _scores&#41; external;
+&#125;</code></pre>
+<p><strong>Keep contracts simple.</strong> Complex logic lives in backend where it can be updated.</p>
+<h2 id="implementation_roadmap"><a href="#implementation_roadmap" class="header-anchor">Implementation Roadmap</a></h2>
+<h3 id="phase_1_mvp_4-6_weeks"><a href="#phase_1_mvp_4-6_weeks" class="header-anchor">Phase 1: MVP &#40;4-6 weeks&#41;</a></h3>
+<p><strong>Week 1-2: Foundation</strong></p>
+<ul>
+<li><p>Set up Next.js app with Privy authentication</p>
+</li>
+<li><p>Basic experiment creation form &#40;Web2 style&#41;</p>
+</li>
+<li><p>Store data in PostgreSQL</p>
+</li>
+<li><p>Deploy to Vercel</p>
+</li>
+</ul>
+<p><strong>Week 3-4: Core Features</strong></p>
+<ul>
+<li><p>Participant registration for experiments</p>
+</li>
+<li><p>Simple result submission &#40;text/file upload&#41;</p>
+</li>
+<li><p>Admin dashboard for reviewing submissions</p>
+</li>
+<li><p>Stripe integration for basic payments</p>
+</li>
+</ul>
+<p><strong>Week 5-6: Soft Launch</strong></p>
+<ul>
+<li><p>Test with 1-2 pilot experiments</p>
+</li>
+<li><p>Invite 10-20 scientists to try it</p>
+</li>
+<li><p>Collect feedback, iterate UX</p>
+</li>
+<li><p>No blockchain yet—prove the concept first</p>
+</li>
+</ul>
+<h3 id="phase_2_blockchain_integration_3-4_weeks"><a href="#phase_2_blockchain_integration_3-4_weeks" class="header-anchor">Phase 2: Blockchain Integration &#40;3-4 weeks&#41;</a></h3>
+<p><strong>Add blockchain invisibly:</strong></p>
+<ul>
+<li><p>Deploy simple smart contracts to Arbitrum testnet</p>
+</li>
+<li><p>Integrate Privy wallet creation &#40;users don&#39;t notice&#41;</p>
+</li>
+<li><p>Mirror experiment data to Arweave</p>
+</li>
+<li><p>Add &quot;blockchain verified&quot; badges</p>
+</li>
+</ul>
+<p><strong>Test mixed payments:</strong></p>
+<ul>
+<li><p>Let researchers fund in crypto OR fiat</p>
+</li>
+<li><p>Pay participants in their preferred currency</p>
+</li>
+<li><p>Ensure conversions work smoothly</p>
+</li>
+</ul>
+<h3 id="phase_3_growth_features_ongoing"><a href="#phase_3_growth_features_ongoing" class="header-anchor">Phase 3: Growth Features &#40;Ongoing&#41;</a></h3>
+<p><strong>Month 3-6:</strong></p>
+<ul>
+<li><p>Peer review system with reputation scores</p>
+</li>
+<li><p>Advanced consensus algorithms</p>
+</li>
+<li><p>Automatic quality scoring</p>
+</li>
+<li><p>Referral program</p>
+</li>
+</ul>
+<p><strong>Month 6-12:</strong></p>
+<ul>
+<li><p>Governance features &#40;researchers vote on platform changes&#41;</p>
+</li>
+<li><p>Data marketplace &#40;sell aggregate results&#41;</p>
+</li>
+<li><p>API for institutional integration</p>
+</li>
+<li><p>Mobile app for easier participation</p>
+</li>
+</ul>
+<h2 id="cost-effective_launch"><a href="#cost-effective_launch" class="header-anchor">Cost-Effective Launch</a></h2>
+<p><strong>Minimal budget:</strong></p>
+<ul>
+<li><p>Domain &#43; hosting: &#36;50/year</p>
+</li>
+<li><p>Stripe fees: 2.9&#37; &#43; &#36;0.30 per transaction</p>
+</li>
+<li><p>Smart contract deployment: ~&#36;50-200</p>
+</li>
+<li><p>No audit needed initially &#40;use OpenZeppelin templates&#41;</p>
+</li>
+<li><p><strong>Total startup cost: &lt;&#36;500</strong></p>
+</li>
+</ul>
+<p><strong>With funding &#40;&#36;5k-10k&#41;:</strong></p>
+<ul>
+<li><p>Smart contract audit: &#36;3k-5k &#40;QuillAudits, Hacken&#41;</p>
+</li>
+<li><p>Initial marketing: &#36;2k</p>
+</li>
+<li><p>Better infrastructure: &#36;1k/year</p>
+</li>
+<li><p>First experiments funded by you: &#36;2k</p>
+</li>
+</ul>
+<p><strong>Avoid:</strong></p>
+<ul>
+<li><p>Building your own blockchain</p>
+</li>
+<li><p>Complex tokenomics initially</p>
+</li>
+<li><p>Expensive consultants</p>
+</li>
+<li><p>Over-engineering</p>
+</li>
+</ul>
+<h2 id="what_makes_this_different_from_existing_desci"><a href="#what_makes_this_different_from_existing_desci" class="header-anchor">What Makes This Different from Existing DeSci</a></h2>
+<table><tr><th align="right">Feature</th><th align="right">Existing DeSci</th><th align="right">Your Platform</th></tr><tr><td align="right">Target user</td><td align="right">Crypto natives</td><td align="right">Traditional scientists</td></tr><tr><td align="right">Entry barrier</td><td align="right">Install MetaMask</td><td align="right">Email login</td></tr><tr><td align="right">Payment</td><td align="right">VITA, BIO tokens</td><td align="right">USD &#40;crypto optional&#41;</td></tr><tr><td align="right">Governance</td><td align="right">Token voting</td><td align="right">Simple voting, then DAO</td></tr><tr><td align="right">Documentation</td><td align="right">Discord, Twitter</td><td align="right">Academic style, clear</td></tr><tr><td align="right">Success metric</td><td align="right">Token price</td><td align="right">Papers published</td></tr></table>
+<h2 id="traction_strategy"><a href="#traction_strategy" class="header-anchor">Traction Strategy</a></h2>
+<h3 id="dont_compete_with_vitadao_or_bio"><a href="#dont_compete_with_vitadao_or_bio" class="header-anchor">Don&#39;t compete with VitaDAO or BIO</a></h3>
+<p><strong>Instead:</strong> Position as the normie on-ramp to DeSci</p>
+<p><strong>Partnership opportunities:</strong></p>
+<ul>
+<li><p>&quot;Powered by BIO Protocol infrastructure&quot;</p>
+</li>
+<li><p>Use VitaDAO&#39;s IP-NFT framework behind the scenes</p>
+</li>
+<li><p>Refer advanced users to existing platforms</p>
+</li>
+<li><p>Become the UX layer on top of their tech</p>
+</li>
+</ul>
+<h3 id="target_the_right_users_first"><a href="#target_the_right_users_first" class="header-anchor">Target the right users first</a></h3>
+<p><strong>Bad first users:</strong></p>
+<ul>
+<li><p>Crypto day traders</p>
+</li>
+<li><p>Grant-chasing academics</p>
+</li>
+<li><p>Anti-establishment scientists</p>
+</li>
+</ul>
+<p><strong>Good first users:</strong></p>
+<ul>
+<li><p>Citizen scientists &#40;already experimental&#41;</p>
+</li>
+<li><p>Undergraduate research programs &#40;need projects&#41;</p>
+</li>
+<li><p>Failed grant applicants &#40;looking for alternatives&#41;</p>
+</li>
+<li><p>Replication researchers &#40;underserved niche&#41;</p>
+</li>
+</ul>
+<h3 id="content_strategy"><a href="#content_strategy" class="header-anchor">Content strategy</a></h3>
+<ul>
+<li><p>Publish one high-quality experiment protocol per week</p>
+</li>
+<li><p>Write clear methodologies, not crypto jargon</p>
+</li>
+<li><p>Get published in open science journals</p>
+</li>
+<li><p>Present at academic conferences, not crypto conferences</p>
+</li>
+</ul>
+<h2 id="key_success_metrics"><a href="#key_success_metrics" class="header-anchor">Key Success Metrics</a></h2>
+<p><strong>Ignore vanity metrics:</strong></p>
+<ul>
+<li><p>Token price</p>
+</li>
+<li><p>Twitter followers</p>
+</li>
+<li><p>&quot;Total value locked&quot;</p>
+</li>
+</ul>
+<p><strong>Focus on real impact:</strong></p>
+<ul>
+<li><p>Number of completed experiments</p>
+</li>
+<li><p>Peer-reviewed papers citing platform data</p>
+</li>
+<li><p>Scientists who return for second experiment</p>
+</li>
+<li><p>Institutions that adopt platform</p>
+</li>
+<li><p>Replication rate of experiments</p>
+</li>
+</ul>
+<p><strong>Milestone targets:</strong></p>
+<ul>
+<li><p><strong>Month 3:</strong> 50 scientists signed up, 5 experiments completed</p>
+</li>
+<li><p><strong>Month 6:</strong> 200 scientists, 25 experiments, 1 publication</p>
+</li>
+<li><p><strong>Month 12:</strong> 1000 scientists, 100 experiments, partnership with 1 university</p>
+</li>
+<li><p><strong>Year 2:</strong> Self-sustaining, breakthrough finding published</p>
+</li>
+</ul>
+<h2 id="the_hard_truth_about_desci"><a href="#the_hard_truth_about_desci" class="header-anchor">The Hard Truth About DeSci</a></h2>
+<p>The ultimate verdict will be whether DeSci DAOs can develop drugs that slow, stall, or reverse aging and sustain themselves through profitable research.</p>
+<p><strong>Your platform doesn&#39;t need to cure aging.</strong> But it needs to:</p>
+<ol>
+<li><p>Make life easier for scientists &#40;not harder&#41;</p>
+</li>
+<li><p>Produce at least one replicable, cited finding</p>
+</li>
+<li><p>Be more convenient than current alternatives</p>
+</li>
+<li><p>Prove blockchain adds value &#40;transparency, IP ownership&#41;</p>
+</li>
+</ol>
+<p>If you can&#39;t clearly explain why blockchain is necessary for your platform, it probably isn&#39;t.</p>
+<p>So where do you actually begin? Here are three paths, ranked by risk and complexity.</p>
+<h2 id="recommended_starting_point"><a href="#recommended_starting_point" class="header-anchor">Recommended Starting Point</a></h2>
+<p><strong>Option A &#40;safest&#41;:</strong> Build as Web2 platform first</p>
+<ul>
+<li><p>Prove scientists want this</p>
+</li>
+<li><p>Add blockchain features later</p>
+</li>
+<li><p>Lower technical risk</p>
+</li>
+<li><p>Faster to market</p>
+</li>
+</ul>
+<p><strong>Option B &#40;balanced&#41;:</strong> Hybrid from day 1</p>
+<ul>
+<li><p>Use account abstraction for invisible crypto</p>
+</li>
+<li><p>Store protocols on Arweave</p>
+</li>
+<li><p>Traditional payments and UX</p>
+</li>
+<li><p>&quot;Blockchain verified&quot; as feature, not focus</p>
+</li>
+</ul>
+<p><strong>Option C &#40;bold&#41;:</strong> Partner with existing DeSci</p>
+<ul>
+<li><p>Fork VitaDAO&#39;s contracts</p>
+</li>
+<li><p>Build the UX layer they&#39;re missing</p>
+</li>
+<li><p>Leverage their funding and network</p>
+</li>
+<li><p>Focus 100&#37; on scientist experience</p>
+</li>
+</ul>
+<p><strong>My recommendation:</strong> Start with Option A, transition to Option B after proof of concept.</p>
+<h2 id="next_steps"><a href="#next_steps" class="header-anchor">Next Steps</a></h2>
+<p><strong>This week:</strong></p>
+<ol>
+<li><p>Pick one experiment type &#40;longevity, replication, microbiome&#41;</p>
+</li>
+<li><p>Interview 10 scientists in that niche</p>
+</li>
+<li><p>Ask: &quot;Would you use a platform that does X?&quot;</p>
+</li>
+<li><p>Sketch the simplest possible MVP</p>
+</li>
+</ol>
+<p><strong>This month:</strong></p>
+<ol>
+<li><p>Build basic web app &#40;no blockchain&#41;</p>
+</li>
+<li><p>Run 1 pilot experiment with friends/colleagues</p>
+</li>
+<li><p>Document everything that breaks</p>
+</li>
+<li><p>Decide if blockchain actually helps</p>
+</li>
+</ol>
+<p><strong>This quarter:</strong></p>
+<ol>
+<li><p>If pilot works: add account abstraction</p>
+</li>
+<li><p>Launch with 3-5 real experiments</p>
+</li>
+<li><p>Get first publication or citation</p>
+</li>
+<li><p>Reassess: scale up or pivot</p>
+</li>
+</ol>
+<p><strong>Don&#39;t build in a vacuum.</strong> The reason DeSci hasn&#39;t taken off isn&#39;t the tech—it&#39;s that builders aren&#39;t talking to scientists.</p>
+<hr />
+<h1 id="appendix_deep_dives"><a href="#appendix_deep_dives" class="header-anchor">Appendix: Deep Dives</a></h1>
+<p>The following sections address frequently asked questions and advanced topics. Each is a deep dive into a specific challenge you&#39;ll face.</p>
+<hr />
+<h2 id="should_you_tell_people_youre_building_this"><a href="#should_you_tell_people_youre_building_this" class="header-anchor">Should You Tell People You&#39;re Building This?</a></h2>
+<p><em>A common concern: if I share my idea, won&#39;t someone steal it?</em></p>
+<blockquote>
+<p><strong>Short answer: Yes, but strategically.</strong></p>
+<h3>The &quot;Stealth Mode&quot; Trap</h3>
+<blockquote>
+<blockquote>
+<p><strong>What most builders think:</strong> &quot;I need to keep this secret until it&#39;s perfect, or someone will steal my idea.&quot;</p>
+<p><strong>Reality:</strong> Ideas are worthless. Execution is everything. Here&#39;s what actually happens:</p>
+<ul>
+<li><p>You spend 6 months building in secret</p>
+</li>
+<li><p>Launch to crickets because nobody knows it exists</p>
+</li>
+<li><p>Realize scientists want something completely different</p>
+</li>
+<li><p>Waste months pivoting</p>
+</li>
+</ul>
+<p>Meanwhile, someone who talked to 50 scientists first builds exactly what they need and wins.</p>
+</blockquote>
+</blockquote>
+<h3>Who You Should Tell &#40;And Why&#41;</h3>
+<blockquote>
+<blockquote>
+<p><strong>1. Potential users &#40;scientists&#41; - Tell ASAP</strong></p>
+<ul>
+<li><p>They won&#39;t steal your idea—they&#39;re busy doing science</p>
+</li>
+<li><p>They&#39;ll tell you if it solves a real problem or not</p>
+</li>
+<li><p>Early feedback &#61; avoid building wrong thing</p>
+</li>
+<li><p>&quot;I&#39;m building a platform to make experiment collaboration easier. Can I ask you 3 questions?&quot;</p>
+</li>
+</ul>
+<p><strong>2. Technical advisors - Tell selectively</strong></p>
+<ul>
+<li><p>Other developers can help with architecture decisions</p>
+</li>
+<li><p>Web3 people have seen what works and what doesn&#39;t</p>
+</li>
+<li><p>But don&#39;t pitch the &quot;business idea&quot;—ask specific technical questions</p>
+</li>
+</ul>
+<p><strong>3. Potential competitors - Don&#39;t worry about them</strong></p>
+<ul>
+<li><p>BIO Protocol, VitaDAO already exist with millions in funding</p>
+</li>
+<li><p>If they wanted to solve the UX problem, they would have</p>
+</li>
+<li><p>Your advantage is speed and focus, not secrecy</p>
+</li>
+<li><p>By the time they notice you, you&#39;ll have users</p>
+</li>
+</ul>
+<p><strong>4. Investors/partners - Only after proof of concept</strong></p>
+<ul>
+<li><p>Wait until you have 10&#43; scientists using MVP</p>
+</li>
+<li><p>Then leverage traction for funding/partnerships</p>
+</li>
+<li><p>&quot;We have 50 completed experiments&quot; &gt; &quot;We have an idea&quot;</p>
+</li>
+</ul>
+</blockquote>
+</blockquote>
+<h3>What to Share vs What to Keep Close</h3>
+<blockquote>
+<blockquote>
+<p><strong>Share freely:</strong></p>
+<ul>
+<li><p>The problem you&#39;re solving &#40;&quot;experiment collaboration is broken&quot;&#41;</p>
+</li>
+<li><p>High-level approach &#40;&quot;making DeSci accessible to normal scientists&quot;&#41;</p>
+</li>
+<li><p>Technical challenges &#40;&quot;how to do protocol inheritance?&quot;&#41;</p>
+</li>
+<li><p>Early results &#40;&quot;10 scientists tested it, here&#39;s feedback&quot;&#41;</p>
+</li>
+</ul>
+<p><strong>Keep private:</strong></p>
+<ul>
+<li><p>Specific algorithm for royalty decay &#40;until it&#39;s proven to work&#41;</p>
+</li>
+<li><p>Your user acquisition strategy &#40;who you&#39;re targeting first&#41;</p>
+</li>
+<li><p>Partnerships you&#39;re negotiating</p>
+</li>
+<li><p>Financial projections / fundraising plans</p>
+</li>
+</ul>
+<p><strong>The rule:</strong> Share problems and learning. Keep tactics and relationships private.</p>
+</blockquote>
+</blockquote>
+<h3>The Strategic Sharing Approach</h3>
+<blockquote>
+<blockquote>
+<p><strong>Phase 1 &#40;Weeks 1-4&#41;: Research mode</strong></p>
+<ul>
+<li><p>Interview 20-30 scientists</p>
+</li>
+<li><p>Post in r/labrats: &quot;What&#39;s your biggest frustration with experiment collaboration?&quot;</p>
+</li>
+<li><p>Join DeSci Discord: &quot;I&#39;m exploring solutions to X, what have you tried?&quot;</p>
+</li>
+<li><p><strong>You&#39;re not &quot;building&quot; yet, just researching</strong></p>
+</li>
+</ul>
+<p><strong>Phase 2 &#40;Weeks 5-8&#41;: Build in semi-public</strong></p>
+<ul>
+<li><p>Tweet progress: &quot;Building a tool for experiment protocols. Day 12.&quot;</p>
+</li>
+<li><p>Show wireframes: &quot;Does this UX make sense for scientists?&quot;</p>
+</li>
+<li><p>Get feedback constantly</p>
+</li>
+<li><p><strong>You&#39;re building, but it&#39;s not launched</strong></p>
+</li>
+</ul>
+<p><strong>Phase 3 &#40;Weeks 9-12&#41;: Private beta</strong></p>
+<ul>
+<li><p>Invite 10 scientists you interviewed</p>
+</li>
+<li><p>Run 2-3 pilot experiments</p>
+</li>
+<li><p>Document everything that breaks</p>
+</li>
+<li><p><strong>Still not publicly launched</strong></p>
+</li>
+</ul>
+<p><strong>Phase 4 &#40;Month 4&#43;&#41;: Public launch</strong></p>
+<ul>
+<li><p>Write launch post: &quot;We ran 10 experiments with 50 scientists. Here&#39;s what we learned.&quot;</p>
+</li>
+<li><p>By now you have proof, testimonials, data</p>
+</li>
+<li><p>Much harder for anyone to copy what you&#39;ve validated</p>
+</li>
+</ul>
+</blockquote>
+</blockquote>
+<h3>The &quot;Someone Will Steal It&quot; Reality Check</h3>
+<blockquote>
+<blockquote>
+<p><strong>Who would steal it?</strong></p>
+<ul>
+<li><p><strong>Big tech companies?</strong> They don&#39;t care about niche science platforms</p>
+</li>
+<li><p><strong>Existing DeSci projects?</strong> They&#39;re ideologically committed to their approach</p>
+</li>
+<li><p><strong>Other indie builders?</strong> They have their own ideas and lack your domain knowledge</p>
+</li>
+<li><p><strong>Scientists?</strong> They want to use tools, not build them</p>
+</li>
+</ul>
+<p><strong>What actually kills startups:</strong></p>
+<ul>
+<li><p>Building something nobody wants &#40;70&#37; of failures&#41;</p>
+</li>
+<li><p>Running out of money &#40;29&#37; of failures&#41;</p>
+</li>
+<li><p>Getting copied &#40;&lt; 1&#37; of failures&#41;</p>
+</li>
+</ul>
+<p>Even if someone does copy you, they&#39;d need to:</p>
+<ol>
+<li><p>Understand the problem as deeply</p>
+</li>
+<li><p>Build as fast as you</p>
+</li>
+<li><p>Talk to as many scientists</p>
+</li>
+<li><p>Launch with better UX</p>
+</li>
+<li><p>Out-market you</p>
+</li>
+</ol>
+<p>That&#39;s incredibly hard. And if someone can do all that, they deserve to win.</p>
+</blockquote>
+</blockquote>
+<h3>Exceptions: When NOT to Share</h3>
+<blockquote>
+<blockquote>
+<p><strong>1. You have truly novel tech &#40;rare&#41;</strong></p>
+<ul>
+<li><p>Genuinely new consensus algorithm</p>
+</li>
+<li><p>Proprietary AI model for protocol analysis</p>
+</li>
+<li><p>Patent-worthy innovation</p>
+</li>
+</ul>
+<p>→ File provisional patent first, then share</p>
+<p><strong>2. You&#39;re in a cutthroat market</strong></p>
+<ul>
+<li><p>Multiple well-funded competitors</p>
+</li>
+<li><p>Race to market is critical</p>
+</li>
+<li><p>First-mover advantage is massive</p>
+</li>
+</ul>
+<p>→ Build fast, launch, then talk</p>
+<p><strong>3. You have insider access</strong></p>
+<ul>
+<li><p>Exclusive data or relationships</p>
+</li>
+<li><p>Partnership that would be spoiled by publicity</p>
+</li>
+<li><p>Regulatory advantage</p>
+</li>
+</ul>
+<p>→ Keep the specific advantage secret</p>
+<p><strong>But even then:</strong> You can still talk about the <em>problem</em> without revealing your <em>solution</em>.</p>
+</blockquote>
+</blockquote>
+<h3>The Build-in-Public Strategy &#40;Recommended&#41;</h3>
+<blockquote>
+<blockquote>
+<p><strong>Why this works:</strong></p>
+<ul>
+<li><p>Builds audience before launch</p>
+</li>
+<li><p>Gets feedback early when changes are cheap</p>
+</li>
+<li><p>Creates accountability &#40;people are watching&#41;</p>
+</li>
+<li><p>Attracts collaborators and early users</p>
+</li>
+<li><p>Validates demand before investing heavily</p>
+</li>
+</ul>
+<p><strong>How to do it:</strong></p>
+<ul>
+<li><p>Tweet/blog weekly progress</p>
+</li>
+<li><p>Share mockups and get feedback</p>
+</li>
+<li><p>Ask questions in relevant communities</p>
+</li>
+<li><p>Be honest about challenges</p>
+</li>
+<li><p>Celebrate small wins</p>
+</li>
+</ul>
+<p><strong>What it looks like:</strong></p>
+<ul>
+<li><p>Week 1: &quot;Talking to scientists about experiment collaboration problems&quot;</p>
+</li>
+<li><p>Week 3: &quot;Interviewed 15 scientists. Top pain point: citation system is broken&quot;</p>
+</li>
+<li><p>Week 6: &quot;Building protocol inheritance feature. Sketched this flow—thoughts?&quot;</p>
+</li>
+<li><p>Week 10: &quot;First experiment completed on the platform&#33; 8 participants, clean data.&quot;</p>
+</li>
+<li><p>Week 14: &quot;Launching beta. If you&#39;re a scientist interested in X, DM me.&quot;</p>
+</li>
+</ul>
+<p>By launch, you have an audience of people who&#39;ve been following your journey.</p>
+</blockquote>
+</blockquote>
+<h3>Bottom Line</h3>
+<blockquote>
+<blockquote>
+<p><strong>Talk to scientists immediately and constantly.</strong> They&#39;re your users. Without them, you&#39;re building nothing.</p>
+<p><strong>Share the journey publicly.</strong> Builds credibility, gets feedback, attracts early adopters.</p>
+<p><strong>Keep specific tactics private.</strong> Don&#39;t announce your growth hacks or unfair advantages.</p>
+<p><strong>The best defense against copycats is speed and relationships.</strong> By the time someone copies your idea, you should already have 100 users who love you.</p>
+<p>Remember: VitaDAO and BIO Protocol have years of head start and millions in funding. They&#39;re not failing because someone stole their idea—they&#39;re struggling because they didn&#39;t solve the UX problem. Your edge is understanding scientists and moving fast, not secrecy.</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<hr />
+<h2 id="whats_stripe"><a href="#whats_stripe" class="header-anchor">What&#39;s Stripe?</a></h2>
+<p><em>If you&#39;re not familiar with Stripe, this explains why it&#39;s the model for what DeSci needs.</em></p>
+<blockquote>
+<p><strong>Stripe is the behind-the-scenes payment system that powers millions of websites.</strong> When you buy something online and enter your credit card, there&#39;s a good chance Stripe is handling that transaction.</p>
+<p>Think of it like the plumbing in a building—you don&#39;t see it, but it makes everything work. Without Stripe, every company would need to build their own secure payment system, deal with banks directly, handle fraud detection, manage refunds, etc. Stripe does all that boring infrastructure work so developers can just add a few lines of code and boom—they can accept payments.</p>
+<p><strong>Why I keep mentioning it:</strong> When I say &quot;build the Stripe for DeSci,&quot; I mean create something that makes blockchain as easy to use as Stripe makes payments. Scientists shouldn&#39;t need to understand crypto any more than online shoppers need to understand how credit card processing works. They just want it to work invisibly.</p>
+<p>Stripe&#39;s genius was abstracting away complexity. That&#39;s exactly what DeSci needs—hide the blockchain, show the benefits.</p>
+</blockquote>
+<hr />
+<h2 id="the_experiment_referral_economy"><a href="#the_experiment_referral_economy" class="header-anchor">The Experiment Referral Economy</a></h2>
+<p><em>One of the most powerful features you could build: experiments that cite and build on each other, creating a living knowledge graph with automatic attribution.</em></p>
+<blockquote>
+<p><strong>This solves a real problem in science.</strong></p>
+<p>Right now, science works like this: publish paper → wait for citations → hope for tenure. It&#39;s slow &#40;years&#41;, gameable &#40;citation cartels&#41;, and gatekept &#40;Nature/Science or bust&#41;.</p>
+<p><strong>Your idea: experiments that reference other experiments, creating a living knowledge graph.</strong></p>
+<p>Here&#39;s how it could work:</p>
+<ul>
+<li><p>Experiment A tests &quot;Does cold exposure increase brown fat?&quot;</p>
+</li>
+<li><p>Scientist B sees interesting results, creates Experiment B: &quot;Does brown fat correlate with metabolic health?&quot;</p>
+</li>
+<li><p>Experiment B &quot;forks&quot; or &quot;extends&quot; Experiment A</p>
+</li>
+<li><p>Original experimenter gets ongoing credit &#43; small royalty when their work is built upon</p>
+</li>
+</ul>
+<p><strong>Why this is better than citations:</strong></p>
+<ul>
+<li><p><strong>Immediate feedback</strong>: You know your experiment mattered within weeks, not years</p>
+</li>
+<li><p><strong>Financial incentive</strong>: Get paid when others build on your work &#40;like open source sponsorship&#41;</p>
+</li>
+<li><p><strong>No gatekeepers</strong>: Don&#39;t need journal approval to validate your contribution</p>
+</li>
+<li><p><strong>Real replication</strong>: Someone literally running your experiment again is worth 100x more than a citation</p>
+</li>
+</ul>
+<p><strong>The mechanism:</strong></p>
+<ul>
+<li><p>Each experiment has a DOI-like permanent ID</p>
+</li>
+<li><p>When creating new experiments, mark which ones you&#39;re &quot;extending&quot; or &quot;replicating&quot;</p>
+</li>
+<li><p>Original creators get 5-10&#37; of the reward pool automatically</p>
+</li>
+<li><p>Public graph shows experiment lineages &#40;like GitHub&#39;s fork network&#41;</p>
+</li>
+</ul>
+<p><strong>This creates a compound effect</strong>: Good experiments become &quot;platforms&quot; that spawn 10&#43; derivative studies. Bad experiments get ignored. No journal editor needed to decide what&#39;s important—the scientific community votes with their participation.</p>
+<p><strong>The peer review question:</strong> You still need <em>some</em> quality filter, but it can be post-hoc:</p>
+<ul>
+<li><p>Anyone can submit experiments &#40;no gatekeeping&#41;</p>
+</li>
+<li><p>Community reviews completed experiments for quality</p>
+</li>
+<li><p>High-quality experiments get featured, more referrals, more rewards</p>
+</li>
+<li><p>Low-quality experiments fade into obscurity</p>
+</li>
+</ul>
+<p>This flips the model: instead of asking permission before publishing &#40;peer review&#41;, you prove value after publishing &#40;community validation&#41;. Wikipedia editing model, not academic journal model.</p>
+<p><strong>Bonus</strong>: Each experiment&#39;s &quot;impact score&quot; becomes its referral count &#43; completion rate &#43; quality ratings. Way more meaningful than H-index.</p>
+</blockquote>
+<hr />
+<h2 id="the_citation_problem_what_if_scientists_dont_link_back"><a href="#the_citation_problem_what_if_scientists_dont_link_back" class="header-anchor">The Citation Problem: What If Scientists Don&#39;t Link Back?</a></h2>
+<p><em>The referral economy sounds great, but what prevents scientists from ignoring attribution? This is where blockchain architecture actually helps.</em></p>
+<blockquote>
+<p><strong>The core weakness of any attribution system: voluntary attribution doesn&#39;t work. Scientists forget, omit, or deliberately don&#39;t cite things all the time.</strong></p>
+<p><strong>But here&#39;s where blockchain actually helps—you can make attribution automatic and unavoidable:</strong></p>
+<h3>Option 1: Data Dependency Detection</h3>
+<blockquote>
+<blockquote>
+<p>When Scientist B creates a new experiment, the platform analyzes:</p>
+<ul>
+<li><p>Does it use the same protocol steps? </p>
+</li>
+<li><p>Same reagents or materials list?</p>
+</li>
+<li><p>Same population or cohort definition?</p>
+</li>
+<li><p>Same measurement techniques?</p>
+</li>
+</ul>
+<p>If overlap exceeds ~60&#37;, the system flags: &quot;This appears to build on Experiment A. Link it?&quot; Not optional—you must either link it or explain why you&#39;re not.</p>
+<p>Think: GitHub detecting &quot;this looks like a fork&quot; or plagiarism detectors finding text similarity.</p>
+</blockquote>
+</blockquote>
+<h3>Option 2: Protocol Inheritance &#40;The Smart Move&#41;</h3>
+<blockquote>
+<blockquote>
+<p>Instead of writing protocols from scratch, scientists &quot;clone&quot; existing protocols and modify them.</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li><p>Experiment A has protocol stored on Arweave with hash <code>ABC123</code></p>
+</li>
+<li><p>Scientist B clicks &quot;Use this protocol as template&quot;</p>
+</li>
+<li><p>Makes modifications &#40;changes dosage, adds a step&#41;</p>
+</li>
+<li><p>New protocol auto-links to parent: hash <code>ABC123</code> → <code>DEF456</code></p>
+</li>
+<li><p>Smart contract enforces: Parent gets 5&#37; of any rewards automatically</p>
+</li>
+</ul>
+<p>You literally can&#39;t use someone&#39;s protocol without the link being created. It&#39;s baked into the data structure.</p>
+</blockquote>
+</blockquote>
+<h3>Option 3: Knowledge Graph Analysis</h3>
+<blockquote>
+<blockquote>
+<p>Run semantic analysis on all experiment descriptions using AI:</p>
+<ul>
+<li><p>&quot;This experiment mentions &#39;brown adipose tissue&#39; and &#39;cold exposure&#39;&quot;</p>
+</li>
+<li><p>Search for all prior experiments with those keywords</p>
+</li>
+<li><p>Surface them to Scientist B: &quot;Did you know these 3 experiments are related?&quot;</p>
+</li>
+<li><p>Incentivize linking: &quot;Link 2&#43; related experiments and get bonus rewards&quot;</p>
+</li>
+</ul>
+<p>The platform becomes smarter than individual scientists at seeing connections.</p>
+</blockquote>
+</blockquote>
+<h3>Option 4: Retroactive Attribution &#40;The Nuclear Option&#41;</h3>
+<blockquote>
+<blockquote>
+<p>If Scientist B doesn&#39;t link to Experiment A but should have:</p>
+<ul>
+<li><p>Community can propose the link via governance</p>
+</li>
+<li><p>If vote passes, link is added retroactively</p>
+</li>
+<li><p>Original creator gets back-pay for all derivative work</p>
+</li>
+<li><p>Scientist B doesn&#39;t lose anything, but the record is corrected</p>
+</li>
+</ul>
+<p>This is only possible because blockchain creates an immutable history. You can&#39;t erase that Experiment B borrowed from Experiment A.</p>
+</blockquote>
+</blockquote>
+<h3>The Key Insight: Make Attribution the Path of Least Resistance</h3>
+<blockquote>
+<blockquote>
+<p><strong>Bad design:</strong> Scientist must manually search and link related work &#40;they won&#39;t&#41;</p>
+<p><strong>Good design:</strong> Platform auto-detects relationships, scientist just clicks &quot;yes&quot;</p>
+<p><strong>Best design:</strong> Using someone&#39;s protocol <em>requires</em> linking by default. The only way to avoid it is to write everything from scratch—which is more work than just accepting the attribution.</p>
+<p>Think about how GitHub handles forks: you can&#39;t fork a repo without it showing the parent. It&#39;s not optional. That&#39;s the model.</p>
+</blockquote>
+</blockquote>
+<h3>Why This Actually Works</h3>
+<blockquote>
+<blockquote>
+<p>Traditional citations fail because:</p>
+<ol>
+<li><p>They&#39;re added at the end &#40;easy to forget&#41;</p>
+</li>
+<li><p>No one checks if you cited everything</p>
+</li>
+<li><p>No penalty for omission</p>
+</li>
+</ol>
+<p>Your system succeeds because:</p>
+<ol>
+<li><p>Attribution happens at creation time &#40;can&#39;t forget&#41;</p>
+</li>
+<li><p>Platform detects missing links automatically</p>
+</li>
+<li><p>Financial incentive to link &#40;you get better visibility &#43; community trust&#41;</p>
+</li>
+<li><p>Protocols are reusable objects, not text descriptions</p>
+</li>
+</ol>
+<p>You&#39;re not relying on goodwill—you&#39;re changing the incentive structure so that attribution is the easier, more profitable path.</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<hr />
+<h2 id="the_power_law_problem_preventing_protocol_monopolies"><a href="#the_power_law_problem_preventing_protocol_monopolies" class="header-anchor">The Power Law Problem: Preventing Protocol Monopolies</a></h2>
+<p><em>If early protocols earn royalties forever, won&#39;t the first movers dominate and kill innovation? Yes—unless you design against it.</em></p>
+<blockquote>
+<p><strong>This creates a &quot;rich get richer&quot; problem. The first good protocol for &quot;measure blood glucose&quot; gets 1000 forks, makes 50k in royalties, and dominates forever. New scientists see this and think &quot;why bother?&quot;</strong></p>
+<p><strong>This kills innovation. Here&#39;s how to fix it:</strong></p>
+<h3>Solution 1: Diminishing Returns on Royalties</h3>
+<blockquote>
+<blockquote>
+<p><strong>The problem with flat 5&#37; royalties:</strong> Protocol A spawns 100 experiments, original creator makes massive passive income, has no incentive to improve.</p>
+<p><strong>Better model—decay over time or usage:</strong></p>
+</blockquote>
+</blockquote>
+</blockquote>
+<pre><code class="language-julia">&gt; &gt;&gt; First 10 uses:  5&#37; royalty
+&gt; &gt;&gt; Uses 11-50:    3&#37; royalty  
+&gt; &gt;&gt; Uses 51-100:   1&#37; royalty
+&gt; &gt;&gt; Uses 100&#43;:     0.5&#37; royalty
+&gt; &gt;&gt;</code></pre>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>Or time-based decay:</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<pre><code class="language-julia">&gt; &gt;&gt; Year 1: 5&#37; royalty
+&gt; &gt;&gt; Year 2: 3&#37; royalty
+&gt; &gt;&gt; Year 3: 1&#37; royalty
+&gt; &gt;&gt; Year 4&#43;: Protocol becomes &quot;public domain&quot;
+&gt; &gt;&gt;</code></pre>
+<blockquote>
+<blockquote>
+<blockquote>
+<p><strong>Why this works:</strong> Early adopters get rewarded fairly, but protocols don&#39;t become permanent rent-seeking machines. After saturation, the incentive shifts to creating <em>new</em> protocols.</p>
+</blockquote>
+</blockquote>
+<h3>Solution 2: Competitive Forking with Bounties</h3>
+<blockquote>
+<blockquote>
+<p><strong>The twist:</strong> Anyone can create an &quot;alternative protocol&quot; for the same question and compete directly.</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li><p>Protocol A: &quot;Measure blood glucose with finger prick&quot; &#40;1000 uses&#41;</p>
+</li>
+<li><p>Scientist C creates Protocol B: &quot;Measure blood glucose with continuous monitor&quot; &#40;better, less painful&#41;</p>
+</li>
+<li><p>Platform adds &quot;Protocol Battle&quot; feature: Both compete for the same use case</p>
+</li>
+<li><p>Scientists choosing a protocol see: &quot;Protocol A &#40;proven, 1000 uses&#41; vs Protocol B &#40;new, potentially better&#41;&quot;</p>
+</li>
+</ul>
+<p><strong>Incentive boost for challengers:</strong></p>
+<ul>
+<li><p>New protocols get 2x visibility for first 90 days</p>
+</li>
+<li><p>Bounties for &quot;improve existing protocols&quot; </p>
+</li>
+<li><p>If your alternative gets more uses than the original, you get a &quot;Protocol Champion&quot; badge</p>
+</li>
+</ul>
+<p>This way, dominant protocols face constant competitive pressure.</p>
+</blockquote>
+</blockquote>
+<h3>Solution 3: Multi-Attribution with Capped Individual Shares</h3>
+<blockquote>
+<blockquote>
+<p><strong>The problem:</strong> One protocol takes 5&#37; of every reward pool forever.</p>
+<p><strong>Better model:</strong> Multiple protocols can be linked, but total attribution capped at 10-15&#37;</p>
+<p><strong>Example:</strong></p>
+<ul>
+<li><p>Experiment uses Protocol A &#40;5&#37;&#41; &#43; Protocol B &#40;4&#37;&#41; &#43; Protocol C &#40;3&#37;&#41;</p>
+</li>
+<li><p>Total: 12&#37; goes to protocol creators, 88&#37; to participants</p>
+</li>
+<li><p>No single protocol can take more than 5&#37; ever</p>
+</li>
+</ul>
+<p><strong>Why this helps:</strong> Creates a &quot;protocol ecosystem&quot; rather than winner-takes-all. Scientists are incentivized to remix and combine protocols, not just copy the most popular one.</p>
+</blockquote>
+</blockquote>
+<h3>Solution 4: &quot;Protocol Innovation Bonus&quot;</h3>
+<blockquote>
+<blockquote>
+<p><strong>Reward originality explicitly:</strong></p>
+<ul>
+<li><p>AI/semantic analysis detects how different a protocol is from existing ones</p>
+</li>
+<li><p>&quot;Similarity score&quot;: 0&#37; &#40;completely novel&#41; to 100&#37; &#40;identical&#41;</p>
+</li>
+<li><p>Protocols with &lt;30&#37; similarity get &quot;Innovation Bonus&quot;: 2x rewards for first 50 uses</p>
+</li>
+</ul>
+<p><strong>Example:</strong></p>
+<ul>
+<li><p>Protocol A: Standard blood draw procedure &#40;95&#37; similar to existing&#41;</p>
+</li>
+<li><p>Protocol B: Novel saliva-based glucose test &#40;15&#37; similar&#41;</p>
+</li>
+<li><p>Protocol B gets innovation bonus even with fewer uses</p>
+</li>
+</ul>
+<p>This directly incentivizes people to create genuinely new approaches, not just tweak existing ones.</p>
+</blockquote>
+</blockquote>
+<h3>Solution 5: Category-Specific Leaderboards</h3>
+<blockquote>
+<blockquote>
+<p><strong>The problem:</strong> A few mega-protocols dominate the global leaderboard.</p>
+<p><strong>Better approach:</strong> Organize protocols by category/specialty:</p>
+<ul>
+<li><p>Cardiovascular protocols</p>
+</li>
+<li><p>Metabolic protocols  </p>
+</li>
+<li><p>Microbiome protocols</p>
+</li>
+<li><p>Neuroscience protocols</p>
+</li>
+</ul>
+<p><strong>Each category has its own leaderboard and &quot;top protocol&quot; status.</strong></p>
+<p>New scientists don&#39;t compete with the global #1 protocol—they compete within their niche. Much more achievable to become &quot;#1 protocol for gut microbiome sampling&quot; than &quot;#1 protocol on the entire platform.&quot;</p>
+</blockquote>
+</blockquote>
+<h3>Solution 6: Reputation ≠ Royalties</h3>
+<blockquote>
+<blockquote>
+<p><strong>Separate the incentives:</strong></p>
+<ul>
+<li><p><strong>Royalties:</strong> Financial reward for usage &#40;diminishing returns&#41;</p>
+</li>
+<li><p><strong>Reputation points:</strong> Non-transferable score that grows with impact</p>
+</li>
+</ul>
+<p>Even after royalties drop to near-zero, you still accumulate reputation forever. This becomes your scientific &quot;credit score&quot; for:</p>
+<ul>
+<li><p>Applying to new grants</p>
+</li>
+<li><p>Getting priority review</p>
+</li>
+<li><p>Unlocking governance voting power</p>
+</li>
+</ul>
+<p><strong>Why this works:</strong> Scientists care about recognition as much as money. A protocol with 10,000 uses gives you massive reputation even if financial rewards have decayed.</p>
+</blockquote>
+</blockquote>
+<h3>The Balanced Model</h3>
+<blockquote>
+<blockquote>
+<p>Combine these approaches:</p>
+<p><strong>For protocol creators:</strong></p>
+<ul>
+<li><p>Meaningful early rewards &#40;5&#37; for first 50 uses&#41;</p>
+</li>
+<li><p>Diminishing financial returns &#40;decay to 0.5&#37; after 100 uses&#41;</p>
+</li>
+<li><p>Permanent reputation accumulation</p>
+</li>
+<li><p>Innovation bonuses for novel approaches</p>
+</li>
+</ul>
+<p><strong>For new scientists:</strong></p>
+<ul>
+<li><p>Clear incentive to create alternatives &#40;2x visibility boost&#41;</p>
+</li>
+<li><p>Niche leaderboards &#40;can be #1 in subcategory&#41;</p>
+</li>
+<li><p>Bounties for &quot;replace dominant protocol&quot;</p>
+</li>
+<li><p>AI-assisted differentiation detection</p>
+</li>
+</ul>
+<p><strong>Result:</strong> Healthy ecosystem with turnover. Dominant protocols don&#39;t stay dominant forever. Innovation is constantly rewarded. Power law exists but is manageable.</p>
+</blockquote>
+</blockquote>
+<h3>Real-World Analogy</h3>
+<blockquote>
+<blockquote>
+<p>Think of YouTube or TikTok:</p>
+<ul>
+<li><p>Early viral creators made millions</p>
+</li>
+<li><p>Algorithm constantly promotes new creators</p>
+</li>
+<li><p>Categories prevent monopolies &#40;you can&#39;t dominate all genres&#41;</p>
+</li>
+<li><p>Views matter, but so does engagement, novelty, niche appeal</p>
+</li>
+</ul>
+<p>Your platform needs similar &quot;algorithmic fairness&quot;—not just &quot;most popular wins forever.&quot;</p>
+</blockquote>
+</blockquote>
+<h3>The One Thing to Avoid</h3>
+<blockquote>
+<blockquote>
+<p><strong>Don&#39;t try to eliminate power law entirely.</strong> Some protocols <em>should</em> be more popular because they&#39;re genuinely better. The goal isn&#39;t equality of outcomes—it&#39;s ensuring competition remains possible.</p>
+<p>Bad: Everyone gets equal rewards regardless of quality Good: Clear path for new protocols to challenge incumbents</p>
+<p>As long as a genuinely better protocol can overtake a worse one within 6-12 months, the system works.</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<hr />
+<h2 id="resources"><a href="#resources" class="header-anchor">Resources</a></h2>
+<p><strong>Learn from existing platforms:</strong></p>
+<ul>
+<li><p><a href="https://www.researchhub.com/">ResearchHub</a> — backed by Brian Armstrong, has actual scientist adoption</p>
+</li>
+<li><p><a href="https://www.protocols.io/">protocols.io</a> — traditional experiment protocols with good UX &#40;study their design&#41;</p>
+</li>
+<li><p><a href="https://experiment.com/">Experiment.com</a> — crowdfunding for science &#40;understand their pitch to researchers&#41;</p>
+</li>
+</ul>
+<p><strong>Technical documentation:</strong></p>
+<ul>
+<li><p><a href="https://docs.privy.io/">Privy docs</a> — email-based wallet abstraction</p>
+</li>
+<li><p><a href="https://docs.biconomy.io/">Biconomy docs</a> — account abstraction and gasless transactions</p>
+</li>
+<li><p><a href="https://docs.arweave.org/">Arweave docs</a> — permanent storage for protocols</p>
+</li>
+</ul>
+<p><strong>Communities to learn from:</strong></p>
+<ul>
+<li><p>DeSci Discord servers — study what they do wrong &#40;UX, onboarding, jargon&#41;</p>
+</li>
+<li><p>r/labrats — discover what scientists actually complain about</p>
+</li>
+<li><p>Open science communities — understand the values that motivate researchers</p>
+</li>
+</ul>
+<p><strong>The bottom line:</strong> The opportunity is huge. But success means making scientists&#39; lives easier, not teaching them about Web3.</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 30, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>

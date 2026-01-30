@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+   <link rel="stylesheet" href="/libs/katex/katex.min.css">
+     
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Your First Solidity Smart Contract: A Simple Lending Protocol</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">blockchains</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="your_first_solidity_smart_contract_a_simple_lending_protocol"><a href="#your_first_solidity_smart_contract_a_simple_lending_protocol" class="header-anchor">Your First Solidity Smart Contract: A Simple Lending Protocol</a></h1>
+<p>Let&#39;s build something practical but not overwhelming—a basic lending contract where users can deposit ETH and borrow against it.</p>
+<h2 id="what_youll_need"><a href="#what_youll_need" class="header-anchor">What You&#39;ll Need</a></h2>
+<ul>
+<li><p><strong>Node.js</strong> &#40;v16&#43;&#41;</p>
+</li>
+<li><p><strong>A code editor</strong> &#40;VS Code recommended&#41;</p>
+</li>
+<li><p><strong>MetaMask wallet</strong> &#40;for testing&#41;</p>
+</li>
+<li><p><strong>Some test ETH</strong> &#40;we&#39;ll get this for free&#41;</p>
+</li>
+</ul>
+<h2 id="step_1_set_up_your_environment"><a href="#step_1_set_up_your_environment" class="header-anchor">Step 1: Set Up Your Environment</a></h2>
+<p>Install Hardhat &#40;the easiest Solidity development framework&#41;:</p>
+<pre><code class="language-bash">mkdir simple-lending
+cd simple-lending
+npm init -y
+npm install --save-dev hardhat@^2.22.0 @nomicfoundation/hardhat-toolbox
+npx hardhat init</code></pre>
+<blockquote>
+<p>This installs Hardhat <strong>locally in your project directory</strong> &#40;inside a <code>node_modules</code> folder&#41;. That&#39;s what <code>--save-dev</code> does—it&#39;s like downloading a copy of the tool just for this project. This is good because different projects can use different versions without conflicts. When you run <code>npx hardhat</code>, you&#39;re running the local copy, not a global one. Think of it like having your own toolbox in your garage instead of sharing one with the whole neighborhood&#33;</p>
+<p><strong>Note</strong>: We&#39;re using Hardhat v2 here because the toolbox plugins are most stable with it. If you accidentally installed v3 first, just delete the <code>node_modules</code> folder and <code>package-lock.json</code>, then run the install command above again.</p>
+<p><strong>Troubleshooting</strong>: If you get &quot;No Hardhat config file found&quot;, make sure you&#39;re in the right directory &#40;the one with <code>package.json</code>&#41; and that <code>npx hardhat init</code> completed successfully. It should create a <code>hardhat.config.js</code> file. If it didn&#39;t, try running the init command again and make sure to select &quot;Create a JavaScript project&quot; when prompted.</p>
+</blockquote>
+<p>Choose &quot;Create a JavaScript project&quot; when prompted.</p>
+<h2 id="understanding_mappings_and_events"><a href="#understanding_mappings_and_events" class="header-anchor">Understanding Mappings and Events</a></h2>
+<blockquote>
+<p><strong>Mappings</strong> are like dictionaries or hash tables. Think of them as a giant lookup table where you can instantly find someone&#39;s balance by their address. When you do <code>deposits&#91;yourAddress&#93;</code>, it&#39;s like looking up your bank account balance—super fast and efficient. We need them because we can&#39;t loop through millions of users on the blockchain &#40;too expensive&#33;&#41;, but we can instantly check any specific user&#39;s data.</p>
+<p><strong>Events</strong> are like receipts or notifications. When something important happens &#40;like you depositing money&#41;, the contract emits an event that gets logged on the blockchain. Front-end apps and blockchain explorers listen for these events to show you your transaction history. Without events, your app would have no idea what happened—it&#39;s how the blockchain &quot;talks&quot; to the outside world. They&#39;re also super cheap compared to storing data&#33;</p>
+<p><strong>Breaking down the event line:</strong></p>
+<ul>
+<li><p><code>event Deposited</code> - This is the name of the receipt/notification</p>
+</li>
+<li><p><code>address</code> - This is a wallet address &#40;like 0x123...&#41;, basically someone&#39;s account number on the blockchain</p>
+</li>
+<li><p><code>indexed</code> - This makes the field searchable. It&#39;s like adding a tag so you can later filter for &quot;show me all deposits from MY address&quot; instead of everyone&#39;s deposits. You can have up to 3 indexed fields per event.</p>
+</li>
+<li><p><code>uint256 amount</code> - This is just a number &#40;how much was deposited&#41;. <code>uint256</code> means &quot;unsigned integer up to 256 bits&quot;—basically, a really big positive number.</p>
+</li>
+</ul>
+<p><strong>What does <code>emit</code> do?</strong> <code>emit</code> is like hitting &quot;send&quot; on that receipt. When you call <code>emit Deposited&#40;msg.sender, msg.value&#41;</code>, you&#39;re broadcasting &quot;Hey&#33; This person just deposited this much money&#33;&quot; to anyone listening. Your front-end app can then catch this and update the UI to show &quot;Deposit successful&#33;&quot; or add it to your transaction history. </p>
+<p><strong>Yes, the blockchain has a permanent record&#33;</strong> Events are stored in the blockchain&#39;s logs forever. Without emit, the function would still work internally &#40;your balance updates&#41;, but there&#39;d be no easy way to see your transaction history later. It&#39;s the difference between: &#40;1&#41; your bank updating your balance in their database vs. &#40;2&#41; your bank also giving you a statement showing every transaction. Both matter, but events give you the audit trail&#33;</p>
+<p><strong>Exactly right&#33;</strong> You first <em>define</em> the event structure at the top &#40;like designing a form: &quot;name, address, amount&quot;&#41;, then you <em>emit</em> it &#40;like filling out and submitting that form&#41;. Every contract can define whatever events it wants—there&#39;s no universal standard. A lending contract might have <code>Deposited</code>, <code>Borrowed</code>, while a game contract might have <code>PlayerWon</code>, <code>LevelUp</code>. Apps reading the blockchain just look for the events they care about. Think of it like: the event definition is the template, emit is filling it out and sending it&#33;</p>
+<p><strong>Absolutely&#33;</strong> Documentation is crucial. That&#39;s why many projects follow common patterns &#40;like ERC-20 tokens all use <code>Transfer</code> events&#41; and use tools like NatSpec comments in their code. When you build a front-end, you need to know &quot;what events should I listen for?&quot; Good contracts document this, or developers reverse-engineer it from the code. It&#39;s one reason why open-source contracts and clear naming &#40;like <code>Deposited</code> vs <code>Event123</code>&#41; are so important in web3&#33;</p>
+</blockquote>
+<h2 id="step_2_write_your_lending_contract"><a href="#step_2_write_your_lending_contract" class="header-anchor">Step 2: Write Your Lending Contract</a></h2>
+<p>Create <code>contracts/SimpleLending.sol</code>:</p>
+<pre><code class="language-solidity">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleLending &#123;
+    mapping&#40;address &#61;&gt; uint256&#41; public deposits;
+    mapping&#40;address &#61;&gt; uint256&#41; public borrowed;
+    
+    uint256 public constant COLLATERAL_RATIO &#61; 150; // 150&#37; collateralization
+    
+    event Deposited&#40;address indexed user, uint256 amount&#41;;
+    event Borrowed&#40;address indexed user, uint256 amount&#41;;
+    event Repaid&#40;address indexed user, uint256 amount&#41;;
+    event Withdrawn&#40;address indexed user, uint256 amount&#41;;
+    
+    // Deposit ETH as collateral
+    function deposit&#40;&#41; external payable &#123;
+        require&#40;msg.value &gt; 0, &quot;Must deposit something&quot;&#41;;
+        deposits&#91;msg.sender&#93; &#43;&#61; msg.value;
+        emit Deposited&#40;msg.sender, msg.value&#41;;
+    &#125;
+    
+    // Borrow against your collateral
+    function borrow&#40;uint256 amount&#41; external &#123;
+        uint256 maxBorrow &#61; &#40;deposits&#91;msg.sender&#93; * 100&#41; / COLLATERAL_RATIO;
+        require&#40;borrowed&#91;msg.sender&#93; &#43; amount &lt;&#61; maxBorrow, &quot;Insufficient collateral&quot;&#41;;
+        
+        borrowed&#91;msg.sender&#93; &#43;&#61; amount;
+        payable&#40;msg.sender&#41;.transfer&#40;amount&#41;;
+        emit Borrowed&#40;msg.sender, amount&#41;;
+    &#125;
+    
+    // Repay your loan
+    function repay&#40;&#41; external payable &#123;
+        require&#40;borrowed&#91;msg.sender&#93; &gt; 0, &quot;No loan to repay&quot;&#41;;
+        require&#40;msg.value &lt;&#61; borrowed&#91;msg.sender&#93;, &quot;Repaying too much&quot;&#41;;
+        
+        borrowed&#91;msg.sender&#93; -&#61; msg.value;
+        emit Repaid&#40;msg.sender, msg.value&#41;;
+    &#125;
+    
+    // Withdraw your collateral &#40;after repaying&#41;
+    function withdraw&#40;uint256 amount&#41; external &#123;
+        require&#40;borrowed&#91;msg.sender&#93; &#61;&#61; 0, &quot;Repay loan first&quot;&#41;;
+        require&#40;deposits&#91;msg.sender&#93; &gt;&#61; amount, &quot;Insufficient balance&quot;&#41;;
+        
+        deposits&#91;msg.sender&#93; -&#61; amount;
+        payable&#40;msg.sender&#41;.transfer&#40;amount&#41;;
+        emit Withdrawn&#40;msg.sender, amount&#41;;
+    &#125;
+    
+    // Check how much you can borrow
+    function availableToBorrow&#40;address user&#41; external view returns &#40;uint256&#41; &#123;
+        uint256 maxBorrow &#61; &#40;deposits&#91;user&#93; * 100&#41; / COLLATERAL_RATIO;
+        return maxBorrow - borrowed&#91;user&#93;;
+    &#125;
+&#125;</code></pre>
+<h2 id="the_math_explained"><a href="#the_math_explained" class="header-anchor">The Math Explained</a></h2>
+<p>The collateral ratio ensures loans are overcollateralized:</p>
+\[\text{Max Borrow} = \frac{\text{Deposit} \times 100}{150} = \text{Deposit} \times \frac{2}{3}\]
+<p>So if you deposit 1 ETH, you can borrow up to ~0.67 ETH.</p>
+<h2 id="step_3_write_a_deployment_script"><a href="#step_3_write_a_deployment_script" class="header-anchor">Step 3: Write a Deployment Script</a></h2>
+<p>Create <code>scripts/deploy.js</code>:</p>
+<blockquote>
+<p>This script can deploy to <strong>either local or real blockchains</strong>—it depends on which network you specify when running it. By default &#40;Step 4&#41;, we&#39;ll deploy to a local test blockchain running on your computer. Later &#40;Step 6&#41;, we&#39;ll use the same script to deploy to Sepolia, a real Ethereum test network. Think of it like having one &quot;publish&quot; button that can either save a draft locally or publish to the internet—same script, different destinations&#33;</p>
+</blockquote>
+<pre><code class="language-javascript">async function main&#40;&#41; &#123;
+  const SimpleLending &#61; await ethers.getContractFactory&#40;&quot;SimpleLending&quot;&#41;;
+  const lending &#61; await SimpleLending.deploy&#40;&#41;;
+  await lending.waitForDeployment&#40;&#41;;
+  
+  console.log&#40;&quot;SimpleLending deployed to:&quot;, await lending.getAddress&#40;&#41;&#41;;
+&#125;
+
+main&#40;&#41;.catch&#40;&#40;error&#41; &#61;&gt; &#123;
+  console.error&#40;error&#41;;
+  process.exitCode &#61; 1;
+&#125;&#41;;</code></pre>
+<blockquote>
+<p><strong>Breaking down the JavaScript:</strong></p>
+<ul>
+<li><p><code>async function main&#40;&#41;</code> - &quot;async&quot; means this function does things that take time &#40;like talking to the blockchain&#41;. It&#39;s like marking a function as &quot;this might take a while, don&#39;t freeze up waiting for it.&quot;</p>
+</li>
+<li><p><code>await</code> - This means &quot;pause here and wait for this to finish before moving to the next line.&quot; Without it, JavaScript would just rush through without waiting for the blockchain to respond. Think of it like &quot;await pizza.deliver&#40;&#41;&quot; before &quot;eat&#40;pizza&#41;&quot;.</p>
+</li>
+<li><p><code>ethers</code> - This is a JavaScript library &#40;provided by Hardhat&#41; that lets you talk to Ethereum. It&#39;s like a translator between your JavaScript code and the blockchain.</p>
+</li>
+<li><p><code>getContractFactory&#40;&quot;SimpleLending&quot;&#41;</code> - This finds your Solidity contract and prepares it for deployment. Factory &#61; &quot;thing that makes things.&quot;</p>
+</li>
+<li><p><code>deploy&#40;&#41;</code> - This actually sends your contract to the blockchain and creates it there.</p>
+</li>
+<li><p><code>waitForDeployment&#40;&#41;</code> - Wait for the blockchain to confirm &quot;yep, it&#39;s deployed&#33;&quot;</p>
+</li>
+<li><p><code>.catch&#40;&#41;</code> - If anything goes wrong, print the error instead of crashing silently.</p>
+</li>
+</ul>
+<p><strong>What&#39;s actually happening under the hood?</strong> The blockchain itself only understands low-level stuff—raw bytes, cryptographic signatures, and JSON-RPC calls &#40;like &quot;send this transaction,&quot; &quot;get this data&quot;&#41;. Ethers is doing the heavy lifting: it takes your nice <code>.getContractAt&#40;&#41;</code> call, translates it into the right format, sends an HTTP request to a blockchain node, gets back raw data, and converts it into something JavaScript can use. It&#39;s like how your browser translates your clicks into HTTP requests—you don&#39;t see it, but there&#39;s a whole translation layer making everything work smoothly&#33;</p>
+<p><strong>Exactly&#33;</strong> Step 3 adds your contract to the blockchain&#39;s global state. The blockchain is essentially a big state machine that everyone agrees on—when you deploy, you&#39;re saying &quot;hey everyone, here&#39;s a new program that lives at this address, and here&#39;s its initial state &#40;all balances start at zero&#41;.&quot; From that point on, every transaction that calls your contract functions updates that shared state. It&#39;s permanent and replicated across thousands of nodes. That&#39;s why blockchain is so powerful—it&#39;s a state machine that no single person controls&#33;</p>
+</blockquote>
+<h2 id="step_4_test_locally"><a href="#step_4_test_locally" class="header-anchor">Step 4: Test Locally</a></h2>
+<p>Start a local blockchain:</p>
+<pre><code class="language-bash">npx hardhat node</code></pre>
+<p>In another terminal, deploy:</p>
+<pre><code class="language-bash">npx hardhat run scripts/deploy.js --network localhost</code></pre>
+<h2 id="step_5_interact_with_your_contract"><a href="#step_5_interact_with_your_contract" class="header-anchor">Step 5: Interact with Your Contract</a></h2>
+<p>Create <code>scripts/interact.js</code>:</p>
+<blockquote>
+<p><strong>Yes, exactly&#33;</strong> This is basically what your app does. When you build a real web app &#40;a &quot;dApp&quot;&#41;, your front-end code &#40;React, Vue, whatever&#41; does the same thing—it uses ethers.js to connect to the contract, call functions like <code>deposit&#40;&#41;</code> and <code>borrow&#40;&#41;</code>, and listen for events. The only difference is that a real app has a nice UI with buttons and forms, while this script is just raw JavaScript for testing. Think of this as the &quot;engine&quot; that your app&#39;s UI will eventually wrap around&#33;</p>
+</blockquote>
+<pre><code class="language-javascript">async function main&#40;&#41; &#123;
+  const contractAddress &#61; &quot;YOUR_CONTRACT_ADDRESS_HERE&quot;;
+  const lending &#61; await ethers.getContractAt&#40;&quot;SimpleLending&quot;, contractAddress&#41;;
+  
+  // Deposit 1 ETH
+  const depositTx &#61; await lending.deposit&#40;&#123; value: ethers.parseEther&#40;&quot;1.0&quot;&#41; &#125;&#41;;
+  await depositTx.wait&#40;&#41;;
+  console.log&#40;&quot;Deposited 1 ETH&quot;&#41;;
+  
+  // Check how much we can borrow
+  const available &#61; await lending.availableToBorrow&#40;await ethers.provider.getSigner&#40;&#41;.getAddress&#40;&#41;&#41;;
+  console.log&#40;&quot;Can borrow:&quot;, ethers.formatEther&#40;available&#41;, &quot;ETH&quot;&#41;;
+  
+  // Borrow 0.5 ETH
+  const borrowTx &#61; await lending.borrow&#40;ethers.parseEther&#40;&quot;0.5&quot;&#41;&#41;;
+  await borrowTx.wait&#40;&#41;;
+  console.log&#40;&quot;Borrowed 0.5 ETH&quot;&#41;;
+&#125;
+
+main&#40;&#41;;</code></pre>
+<p>Run it:</p>
+<pre><code class="language-bash">npx hardhat run scripts/interact.js --network localhost</code></pre>
+<h2 id="step_6_deploy_to_a_testnet"><a href="#step_6_deploy_to_a_testnet" class="header-anchor">Step 6: Deploy to a Testnet</a></h2>
+<p>Get test ETH from a faucet &#40;search &quot;Sepolia faucet&quot;&#41;.</p>
+<p>Update <code>hardhat.config.js</code>:</p>
+<pre><code class="language-javascript">require&#40;&quot;@nomicfoundation/hardhat-toolbox&quot;&#41;;
+
+module.exports &#61; &#123;
+  solidity: &quot;0.8.20&quot;,
+  networks: &#123;
+    sepolia: &#123;
+      url: &quot;https://sepolia.infura.io/v3/YOUR_INFURA_KEY&quot;,
+      accounts: &#91;&quot;YOUR_PRIVATE_KEY&quot;&#93;
+    &#125;
+  &#125;
+&#125;;</code></pre>
+<p>Deploy:</p>
+<pre><code class="language-bash">npx hardhat run scripts/deploy.js --network sepolia</code></pre>
+<h2 id="what_you_just_built"><a href="#what_you_just_built" class="header-anchor">What You Just Built</a></h2>
+<p>You created a lending protocol where:</p>
+<ul>
+<li><p>Users deposit ETH as collateral</p>
+</li>
+<li><p>They can borrow up to 66.7&#37; of their deposit</p>
+</li>
+<li><p>They must repay before withdrawing</p>
+</li>
+<li><p>Everything is transparent on-chain</p>
+</li>
+</ul>
+<h2 id="next_steps"><a href="#next_steps" class="header-anchor">Next Steps</a></h2>
+<ul>
+<li><p>Add interest rates</p>
+</li>
+<li><p>Implement liquidations</p>
+</li>
+<li><p>Support multiple tokens</p>
+</li>
+<li><p>Write comprehensive tests</p>
+</li>
+</ul>
+<p><strong>Pro tip</strong>: Never put real private keys in your code. Use environment variables or hardware wallets for production&#33;</p>
+<hr />
+<h2 id="can_contracts_be_layered"><a href="#can_contracts_be_layered" class="header-anchor">Can Contracts Be &quot;Layered&quot;?</a></h2>
+<blockquote>
+<p><strong>Absolutely&#33; This is a super common pattern called the &quot;Factory Pattern.&quot;</strong> You create one master contract &#40;the &quot;factory&quot;&#41; that acts as the blueprint, and it can spawn unlimited instances &#40;sub-games&#41;. Here&#39;s how it works:</p>
+</blockquote>
+<pre><code class="language-solidity">&gt; // The blueprint - each game instance
+&gt; contract Game &#123;
+&gt;     address public player1;
+&gt;     address public player2;
+&gt;     uint256 public bet;
+&gt;     // ... game logic
+&gt; &#125;
+&gt; 
+&gt; // The factory - creates new games
+&gt; contract GameFactory &#123;
+&gt;     Game&#91;&#93; public games;  // Track all games
+&gt;     
+&gt;     function createGame&#40;uint256 betAmount&#41; external returns &#40;Game&#41; &#123;
+&gt;         Game newGame &#61; new Game&#40;&#41;;  // Deploy a new Game contract&#33;
+&gt;         games.push&#40;newGame&#41;;
+&gt;         emit GameCreated&#40;address&#40;newGame&#41;, msg.sender&#41;;
+&gt;         return newGame;
+&gt;     &#125;
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>When someone calls <code>createGame&#40;&#41;</code>, it deploys a completely separate Game contract on the blockchain with its own address and state. Each sub-game is independent—they don&#39;t interfere with each other. Players can join whichever game they want by interacting with that specific game&#39;s address.</p>
+<p><strong>Real examples:</strong> Uniswap does this&#33; There&#39;s one factory contract, and it creates a separate liquidity pool contract for every trading pair &#40;ETH/USDC, ETH/DAI, etc.&#41;. Same blueprint, unlimited instances. This is <strong>exactly</strong> how you&#39;d build your game scenario&#33;</p>
+</blockquote>
+<h2 id="how_to_host_a_dapp_web_interface"><a href="#how_to_host_a_dapp_web_interface" class="header-anchor">How to Host a dApp Web Interface?</a></h2>
+<blockquote>
+<p><strong>Great question—you&#39;re right to call out the centralization&#33;</strong> Here&#39;s the reality: most dApps have a centralized front-end but decentralized backend &#40;smart contracts&#41;. There are different levels of decentralization you can choose:</p>
+<p><strong>Option 1: Pragmatic &#40;most common&#41;</strong></p>
+<ul>
+<li><p>Host your React/Next.js front-end on AWS, Vercel, or Netlify</p>
+</li>
+<li><p>Your app is just HTML/CSS/JavaScript that connects users&#39; wallets to your smart contracts</p>
+</li>
+<li><p>If AWS goes down, your site is down, BUT the contracts still work&#33; Users can interact directly via Etherscan or other interfaces</p>
+</li>
+<li><p><strong>Examples:</strong> Most DeFi apps do this &#40;Uniswap, Aave&#41;. It&#39;s centralized hosting, but the critical logic &#40;money, state&#41; is on-chain</p>
+</li>
+</ul>
+<p><strong>Option 2: Decentralized hosting</strong></p>
+<ul>
+<li><p>Use IPFS &#40;InterPlanetary File System&#41; to host your static site</p>
+</li>
+<li><p>Use ENS &#40;Ethereum Name Service&#41; for a readable domain like <code>mygame.eth</code></p>
+</li>
+<li><p>Your site becomes truly unstoppable—no single server can take it down</p>
+</li>
+<li><p><strong>Trade-off:</strong> Slower, more complex setup, and can&#39;t use server-side features</p>
+</li>
+</ul>
+<p><strong>Option 3: Hybrid &#40;best of both&#41;</strong></p>
+<ul>
+<li><p>Host on AWS for speed and convenience</p>
+</li>
+<li><p>Also publish to IPFS as a backup</p>
+</li>
+<li><p>If your main site goes down, users can access the IPFS version</p>
+</li>
+</ul>
+<p><strong>The key insight:</strong> The smart contracts ARE the app&#39;s core. Your front-end is just a convenient interface. Even if you host on AWS, users aren&#39;t trusting you with their money—they&#39;re trusting the blockchain. You&#39;re just making it easier to click buttons instead of calling contract functions manually&#33;</p>
+<p>For a game dApp, Option 1 &#40;AWS/Vercel&#41; is totally fine to start. Once you&#39;re successful, add IPFS as a backup for extra decentralization points&#33;</p>
+</blockquote>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: December 28, 2025.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+        <script src="/libs/katex/katex.min.js"></script>
+<script src="/libs/katex/contrib/auto-render.min.js"></script>
+<script>renderMathInElement(document.body)</script>
+
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>
