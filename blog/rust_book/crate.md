@@ -47,6 +47,70 @@ pub fn useful_function() {
 }
 ```
 
+> **What does `pub` mean?**
+>
+> The `pub` keyword means **public**. By default, everything in Rust is *private*—only accessible within the same module. Adding `pub` makes an item visible to code outside its module.
+>
+> ```rust
+> fn private_function() { }      // Only usable within this module
+> pub fn public_function() { }   // Usable by external code
+> ```
+>
+> For a library crate, you *must* mark functions as `pub` if you want other code to use them. Without `pub`, your library would be useless—nothing would be accessible!
+
+> **How `pub` relates to `use`**
+>
+> The `use` keyword brings items into scope so you don't have to write full paths. But you can only `use` items that are **public** (`pub`) to you:
+>
+> ```rust
+> // In some library crate "mylib"
+> pub fn public_fn() { }     // ✓ Can be imported
+> fn private_fn() { }        // ✗ Cannot be imported from outside
+>
+> pub mod utils {            // Module is public
+>     pub fn helper() { }    // ✓ Can be imported
+>     fn secret() { }        // ✗ Cannot be imported from outside
+> }
+> ```
+>
+> ```rust
+> // In your code
+> use mylib::public_fn;           // ✓ Works
+> use mylib::private_fn;          // ✗ Error: private
+> use mylib::utils::helper;       // ✓ Works (both mod and fn are pub)
+> use mylib::utils::secret;       // ✗ Error: private
+> ```
+>
+> The `::` in paths like `mylib::utils::helper` is just navigating through modules—like folders in a file path. Each segment must be `pub` for external code to reach through it.
+
+> **What can `use` import?**
+>
+> `use` can import almost anything—not just functions:
+>
+> ```rust
+> use std::collections::HashMap;  // struct
+> use std::io::Result;            // type alias
+> use std::cmp::Ordering;         // enum
+> use std::fmt::Debug;            // trait
+> use std::f64::consts::PI;       // constant
+> use mylib::utils;               // module itself
+> use mylib::utils::helper;       // function
+> ```
+>
+> When you import a **module**, you can then access its contents with `::`:
+> ```rust
+> use std::collections;           // import the module
+> let map = collections::HashMap::new();  // use items inside it
+> ```
+>
+> When you import a **specific item**, you use it directly:
+> ```rust
+> use std::collections::HashMap;  // import the struct directly
+> let map = HashMap::new();       // no prefix needed
+> ```
+>
+> **TL;DR:** `use` controls how much of the namespace path you want visible. You're choosing where to "stop" in the path hierarchy.
+
 > **"Crate" usually means library**
 > 
 > When Rustaceans say "I'm using the `serde` crate," they mean library crate. It's interchangeable with "library" in casual conversation.
@@ -61,6 +125,20 @@ Every crate has a **root file**—the starting point for compilation:
 | Library | `src/lib.rs` |
 
 The compiler starts at the root and follows all the `mod` declarations to find the rest of your code.
+
+> **What does `mod` mean?**
+>
+> The `mod` keyword declares a **module**—a way to organize code into separate namespaces. When the compiler sees `mod foo;`, it looks for the code in either:
+> - `foo.rs` (a file), or
+> - `foo/mod.rs` (a folder with a mod.rs file)
+>
+> ```rust
+> // In src/lib.rs or src/main.rs
+> mod utils;    // Tells compiler: "look for utils.rs or utils/mod.rs"
+> mod helpers;  // Tells compiler: "look for helpers.rs or helpers/mod.rs"
+> ```
+>
+> Think of `mod` as creating a tree structure. The crate root is the trunk, and each `mod` declaration adds a branch. We'll cover modules in detail in a separate post.
 
 ---
 
