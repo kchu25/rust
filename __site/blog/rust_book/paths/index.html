@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdots.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'BPdots';
+      src: url('/blockchains/assets/fonts/BPdots/BPdotsBold.otf') format('opentype');
+      font-weight: bold;
+      font-style: normal;
+    }
+  </style>
+  
+   <link rel="stylesheet" href="/libs/highlight/styles/atom-one-dark.min.css">
+   
+  <link rel="stylesheet" href="/css/franklin.css">
+<link rel="stylesheet" href="/css/hypertext.css">
+<link rel="icon" href="/assets/favicon.png">
+
+   <title>Rust Paths: Navigating the Module Tree</title>  
+</head>
+<body>
+<header>
+  <h1 style="color:#283747; font-family:'BPdots', monospace; font-size:2.5em; font-weight:normal; letter-spacing:0.1em">rust</h1>
+  <nav>
+    <a href="/" class="current">Tags</a>
+  | <a href="/blog/" >Notes</a>
+  <hr/>
+  </nav>
+</header>
+
+
+<!-- Content appended here -->
+<div class="franklin-content"><h1 id="rust_paths_navigating_the_module_tree"><a href="#rust_paths_navigating_the_module_tree" class="header-anchor">Rust Paths: Navigating the Module Tree</a></h1>
+<p>Once you have a module tree, you need a way to refer to items in it. That&#39;s where <strong>paths</strong> come in—they&#39;re like file system paths, but for your code.</p>
+<hr />
+<h2 id="what_is_a_path"><a href="#what_is_a_path" class="header-anchor">What is a Path?</a></h2>
+<p>A <strong>path</strong> tells Rust where to find an item &#40;function, struct, enum, etc.&#41; in your module tree.</p>
+<p><strong>Simply put:</strong> A path is <code>x::y::z</code> where <code>::</code> separates each level of the module hierarchy.</p>
+<pre><code class="language-rust">mod front_of_house &#123;
+    pub mod hosting &#123;
+        pub fn add_to_waitlist&#40;&#41; &#123;&#125;
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    // Path to the function - NO &#96;use&#96; needed&#33;
+    front_of_house::hosting::add_to_waitlist&#40;&#41;;
+    //     ↓          ↓              ↓
+    //   module   submodule      function
+&#125;</code></pre>
+<p>Each <code>::</code> navigates deeper into the tree, just like <code>/</code> in a file path &#40;<code>home/user/file.txt</code>&#41;.</p>
+<blockquote>
+<p><strong><code>mod</code> vs <code>use</code> - What&#39;s the difference?</strong></p>
+<ul>
+<li><p><strong><code>mod front_of_house;</code></strong> - Declares/includes the module in your tree</p>
+</li>
+<li><p><strong><code>use front_of_house::hosting;</code></strong> - Creates a shortcut &#40;optional convenience&#41;</p>
+</li>
+</ul>
+<p>If you&#39;ve declared a module with <code>mod</code>, you can <strong>always</strong> access it with a path—no <code>use</code> required&#33;</p>
+</blockquote>
+<pre><code class="language-rust">&gt; mod utils &#123;
+&gt;     pub fn helper&#40;&#41; &#123;&#125;
+&gt; &#125;
+&gt;
+&gt; fn main&#40;&#41; &#123;
+&gt;     utils::helper&#40;&#41;;           // ✓ Works&#33; No &#96;use&#96; needed
+&gt;     
+&gt;     // You CAN use &#96;use&#96; for convenience:
+&gt;     use utils::helper;
+&gt;     helper&#40;&#41;;                  // ✓ Also works, shorter
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p><strong><code>use</code> is purely for convenience</strong>—it creates shortcuts to avoid repeating long paths.</p>
+</blockquote>
+<p><strong>Think of it like a file path:</strong></p>
+<ul>
+<li><p>File system: <code>/home/user/documents/file.txt</code></p>
+</li>
+<li><p>Module path: <code>crate::front_of_house::hosting::add_to_waitlist</code></p>
+</li>
+</ul>
+<p>The <code>::</code> separator is like <code>/</code> in a file path—it navigates through the module hierarchy.</p>
+<hr />
+<h2 id="two_types_of_paths"><a href="#two_types_of_paths" class="header-anchor">Two Types of Paths</a></h2>
+<h3 id="absolute_path_starts_from_crate_root"><a href="#absolute_path_starts_from_crate_root" class="header-anchor"><ol>
+<li><p>Absolute Path &#40;starts from crate root&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>Always starts with <code>crate</code></strong> &#40;which means the root of your crate, not your current location&#41;</p>
+<pre><code class="language-rust">crate::front_of_house::hosting::add_to_waitlist&#40;&#41;;</code></pre>
+<blockquote>
+<p><strong>What is the crate root?</strong></p>
+<p>The <strong>crate root</strong> is the file where your crate&#39;s module tree begins:</p>
+<table><tr><th align="right">Crate Type</th><th align="right">Root File</th></tr><tr><td align="right"><strong>Binary crate</strong></td><td align="right"><code>src/main.rs</code></td></tr><tr><td align="right"><strong>Library crate</strong></td><td align="right"><code>src/lib.rs</code></td></tr></table>
+<p>Everything you declare in these files is at the root level. When you use <code>crate::</code>, you&#39;re referring to items declared in these root files &#40;or modules declared there&#41;.</p>
+</blockquote>
+<pre><code class="language-rust">&gt; // src/lib.rs &#40;this IS the crate root&#41;
+&gt; pub fn root_function&#40;&#41; &#123;&#125;    // At the root
+&gt; 
+&gt; mod foo &#123;                    // At the root
+&gt;     pub fn bar&#40;&#41; &#123;&#125;
+&gt; &#125;
+&gt;
+&gt; // Anywhere in your crate:
+&gt; crate::root_function&#40;&#41;;      // ✓ Accesses the root
+&gt; crate::foo::bar&#40;&#41;;           // ✓ Goes: root → foo → bar
+&gt;</code></pre>
+<blockquote>
+<p><strong>Multiple binaries?</strong> Each has its own root:</p>
+<ul>
+<li><p><code>src/main.rs</code> is the root for the main binary</p>
+</li>
+<li><p><code>src/bin/tool.rs</code> is the root for the <code>tool</code> binary</p>
+</li>
+<li><p><code>src/lib.rs</code> is the root for the library</p>
+</li>
+</ul>
+</blockquote>
+<blockquote>
+<p><strong>Important:</strong> <code>crate::</code><strong>always</strong> starts from the very top of your crate &#40;the root&#41;, no matter where you are in the module tree.</p>
+</blockquote>
+<pre><code class="language-rust">&gt; // In src/lib.rs or src/main.rs &#40;the root&#41;
+&gt; mod foo &#123;
+&gt;     pub mod bar &#123;
+&gt;         pub fn baz&#40;&#41; &#123;
+&gt;             // &#96;crate::&#96; goes back to the ROOT, not to &#96;bar&#96; or &#96;foo&#96;
+&gt;             crate::foo::bar::baz&#40;&#41;;  // Goes: root → foo → bar → baz
+&gt;         &#125;
+&gt;     &#125;
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>Think of <code>crate</code> as the root <code>/</code> in a file system—it&#39;s an <strong>absolute</strong> starting point, not relative to where you are.</p>
+</blockquote>
+<p>Like an absolute file path: <code>/home/user/file.txt</code> &#40;the <code>/</code> always means root&#41;</p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li><p>When the item and caller might move independently</p>
+</li>
+<li><p>When you want clarity about where something lives</p>
+</li>
+<li><p>Generally preferred for stability</p>
+</li>
+</ul>
+<h3 id="ol_start2_relative_path_starts_from_current_module"><a href="#ol_start2_relative_path_starts_from_current_module" class="header-anchor"><ol start="2">
+<li><p>Relative Path &#40;starts from current module&#41;</p>
+</li>
+</ol>
+</a></h3>
+<p><strong>Starts from where you are</strong> in the module tree</p>
+<pre><code class="language-rust">front_of_house::hosting::add_to_waitlist&#40;&#41;;</code></pre>
+<p>Like a relative file path: <code>../documents/file.txt</code></p>
+<p><strong>When to use:</strong></p>
+<ul>
+<li><p>When items will likely move together</p>
+</li>
+<li><p>When you want shorter paths</p>
+</li>
+<li><p>Inside tightly coupled modules</p>
+</li>
+</ul>
+<hr />
+<h2 id="absolute_vs_relative_a_comparison"><a href="#absolute_vs_relative_a_comparison" class="header-anchor">Absolute vs Relative: A Comparison</a></h2>
+<pre><code class="language-rust">mod front_of_house &#123;
+    pub mod hosting &#123;
+        pub fn add_to_waitlist&#40;&#41; &#123;&#125;
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    // Absolute path - starts from crate root
+    crate::front_of_house::hosting::add_to_waitlist&#40;&#41;;
+    
+    // Relative path - starts from current location
+    front_of_house::hosting::add_to_waitlist&#40;&#41;;
+&#125;</code></pre>
+<p>Both work&#33; The difference matters when you refactor:</p>
+<p><strong>Scenario: Move <code>eat_at_restaurant</code> to a submodule</strong></p>
+<pre><code class="language-rust">mod dining &#123;
+    pub fn eat_at_restaurant&#40;&#41; &#123;
+        // Absolute path still works&#33;
+        crate::front_of_house::hosting::add_to_waitlist&#40;&#41;;
+        
+        // Relative path breaks - front_of_house isn&#39;t a sibling anymore
+        // front_of_house::hosting::add_to_waitlist&#40;&#41;; // ✗ Error&#33;
+    &#125;
+&#125;</code></pre>
+<p><strong>Scenario: Move <code>front_of_house</code> and <code>eat_at_restaurant</code> together</strong></p>
+<pre><code class="language-rust">mod customer_experience &#123;
+    mod front_of_house &#123;
+        pub mod hosting &#123;
+            pub fn add_to_waitlist&#40;&#41; &#123;&#125;
+        &#125;
+    &#125;
+    
+    pub fn eat_at_restaurant&#40;&#41; &#123;
+        // Absolute path needs updating
+        crate::customer_experience::front_of_house::hosting::add_to_waitlist&#40;&#41;;
+        
+        // Relative path still works&#33;
+        front_of_house::hosting::add_to_waitlist&#40;&#41;;
+    &#125;
+&#125;</code></pre>
+<hr />
+<h2 id="using_super_for_parent_modules"><a href="#using_super_for_parent_modules" class="header-anchor">Using <code>super</code> for Parent Modules</a></h2>
+<p><code>super</code> is like <code>..</code> in file systems—it goes to the parent module.</p>
+<pre><code class="language-rust">fn deliver_order&#40;&#41; &#123;&#125;
+
+mod back_of_house &#123;
+    fn fix_incorrect_order&#40;&#41; &#123;
+        cook_order&#40;&#41;;              // Sibling in same module
+        super::deliver_order&#40;&#41;;    // Parent&#39;s function
+    &#125;
+    
+    fn cook_order&#40;&#41; &#123;&#125;
+&#125;</code></pre>
+<p><strong>Module tree:</strong></p>
+<pre><code class="language-julia">crate
+├── deliver_order&#40;&#41;
+└── back_of_house
+    ├── fix_incorrect_order&#40;&#41;
+    └── cook_order&#40;&#41;</code></pre>
+<p><code>super</code> from <code>back_of_house</code> goes up to <code>crate</code>, then finds <code>deliver_order</code>.</p>
+<h3 id="when_to_use_super"><a href="#when_to_use_super" class="header-anchor">When to use <code>super</code></a></h3>
+<pre><code class="language-rust">mod restaurant &#123;
+    fn notify_manager&#40;&#41; &#123;
+        println&#33;&#40;&quot;Notifying manager&quot;&#41;;
+    &#125;
+    
+    mod kitchen &#123;
+        pub fn report_issue&#40;&#41; &#123;
+            super::notify_manager&#40;&#41;;  // ✓ Clear: go to parent
+            crate::restaurant::notify_manager&#40;&#41;; // ✗ Verbose
+        &#125;
+    &#125;
+&#125;</code></pre>
+<p><strong>Use <code>super</code> when:</strong></p>
+<ul>
+<li><p>Accessing parent module items</p>
+</li>
+<li><p>You expect the child and parent to stay together</p>
+</li>
+<li><p>You want concise, relative navigation</p>
+</li>
+</ul>
+<hr />
+<h2 id="using_self_for_current_module"><a href="#using_self_for_current_module" class="header-anchor">Using <code>self</code> for Current Module</a></h2>
+<p><code>self</code> refers to the current module &#40;rarely needed, but useful for clarity&#41;.</p>
+<pre><code class="language-rust">mod front_of_house &#123;
+    pub mod hosting &#123;
+        pub fn add_to_waitlist&#40;&#41; &#123;&#125;
+        
+        pub fn seat_at_table&#40;&#41; &#123;
+            self::add_to_waitlist&#40;&#41;;  // Explicit: call sibling
+            add_to_waitlist&#40;&#41;;         // Implicit: same thing
+        &#125;
+    &#125;
+&#125;</code></pre>
+<p>Most people omit <code>self</code> since it&#39;s implicit, but it can make intent clearer in complex code.</p>
+<hr />
+<h2 id="privacy_and_paths"><a href="#privacy_and_paths" class="header-anchor">Privacy and Paths</a></h2>
+<p><strong>Critical rule:</strong> Every segment in a path must be <code>pub</code> for external access.</p>
+<pre><code class="language-rust">mod front_of_house &#123;
+    pub mod hosting &#123;          // ✓ Module is public
+        pub fn add_to_waitlist&#40;&#41; &#123;&#125;  // ✓ Function is public
+    &#125;
+    
+    mod private_room &#123;         // ✗ Module is private
+        pub fn reserve&#40;&#41; &#123;&#125;    // Function is pub, but can&#39;t reach it&#33;
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    front_of_house::hosting::add_to_waitlist&#40;&#41;;  // ✓ Works
+    front_of_house::private_room::reserve&#40;&#41;;      // ✗ Error: module private
+&#125;</code></pre>
+<h3 id="making_paths_accessible"><a href="#making_paths_accessible" class="header-anchor">Making Paths Accessible</a></h3>
+<p>You need <code>pub</code> at <strong>every level</strong>:</p>
+<pre><code class="language-rust">pub mod level1 &#123;           // Must be pub
+    pub mod level2 &#123;       // Must be pub
+        pub fn my_fn&#40;&#41; &#123;&#125;  // Must be pub
+    &#125;
+&#125;
+
+// Now accessible from outside:
+use crate::level1::level2::my_fn;</code></pre>
+<p><strong>Common mistake:</strong> Making a module <code>pub</code> but forgetting its contents</p>
+<pre><code class="language-rust">mod restaurant &#123;
+    pub mod kitchen &#123;      // Module is public
+        fn cook&#40;&#41; &#123;&#125;       // ✗ Function is still private&#33;
+    &#125;
+&#125;
+
+// Error: function &#96;cook&#96; is private
+// restaurant::kitchen::cook&#40;&#41;;</code></pre>
+<hr />
+<h2 id="structs_and_enums_special_cases"><a href="#structs_and_enums_special_cases" class="header-anchor">Structs and Enums: Special Cases</a></h2>
+<h3 id="structs_opt-in_public_fields"><a href="#structs_opt-in_public_fields" class="header-anchor">Structs: Opt-in Public Fields</a></h3>
+<pre><code class="language-rust">mod back_of_house &#123;
+    pub struct Breakfast &#123;
+        pub toast: String,        // Public field
+        seasonal_fruit: String,   // Private field
+    &#125;
+    
+    impl Breakfast &#123;
+        pub fn summer&#40;toast: &amp;str&#41; -&gt; Breakfast &#123;
+            Breakfast &#123;
+                toast: String::from&#40;toast&#41;,
+                seasonal_fruit: String::from&#40;&quot;peaches&quot;&#41;,
+            &#125;
+        &#125;
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    let mut meal &#61; back_of_house::Breakfast::summer&#40;&quot;Rye&quot;&#41;;
+    meal.toast &#61; String::from&#40;&quot;Wheat&quot;&#41;;     // ✓ Public field
+    // meal.seasonal_fruit &#61; &quot;berries&quot;;     // ✗ Private field
+&#125;</code></pre>
+<p><strong>Key insight:</strong> If a struct has private fields, you <strong>must</strong> provide a constructor &#40;like <code>summer&#40;&#41;</code>&#41; because external code can&#39;t set private fields directly.</p>
+<h3 id="enums_all-or-nothing_public"><a href="#enums_all-or-nothing_public" class="header-anchor">Enums: All-or-Nothing Public</a></h3>
+<pre><code class="language-rust">mod back_of_house &#123;
+    pub enum Appetizer &#123;
+        Soup,    // Automatically public
+        Salad,   // Automatically public
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    let order1 &#61; back_of_house::Appetizer::Soup;   // ✓ Works
+    let order2 &#61; back_of_house::Appetizer::Salad;  // ✓ Works
+&#125;</code></pre>
+<p><strong>Why the difference?</strong></p>
+<ul>
+<li><p><strong>Structs</strong> often have internal state you want to protect &#40;invariants&#41;</p>
+</li>
+<li><p><strong>Enums</strong> are useless if you can&#39;t access their variants</p>
+</li>
+</ul>
+<hr />
+<h2 id="practical_examples"><a href="#practical_examples" class="header-anchor">Practical Examples</a></h2>
+<h3 id="example_1_restaurant_module"><a href="#example_1_restaurant_module" class="header-anchor">Example 1: Restaurant Module</a></h3>
+<pre><code class="language-rust">mod front_of_house &#123;
+    pub mod hosting &#123;
+        pub fn add_to_waitlist&#40;&#41; &#123;&#125;
+        pub fn seat_at_table&#40;&#41; &#123;&#125;
+    &#125;
+    
+    pub mod serving &#123;
+        pub fn take_order&#40;&#41; &#123;&#125;
+        pub fn serve_order&#40;&#41; &#123;&#125;
+        pub fn take_payment&#40;&#41; &#123;&#125;
+    &#125;
+&#125;
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    // Absolute paths
+    crate::front_of_house::hosting::add_to_waitlist&#40;&#41;;
+    crate::front_of_house::serving::take_order&#40;&#41;;
+    
+    // Relative paths &#40;shorter&#41;
+    front_of_house::hosting::seat_at_table&#40;&#41;;
+    front_of_house::serving::serve_order&#40;&#41;;
+&#125;</code></pre>
+<h3 id="example_2_using_super_in_nested_modules"><a href="#example_2_using_super_in_nested_modules" class="header-anchor">Example 2: Using <code>super</code> in Nested Modules</a></h3>
+<pre><code class="language-rust">mod sound &#123;
+    pub fn guitar&#40;&#41; &#123;
+        println&#33;&#40;&quot;🎸&quot;&#41;;
+    &#125;
+    
+    pub mod instrument &#123;
+        pub fn clarinet&#40;&#41; &#123;
+            println&#33;&#40;&quot;🎵&quot;&#41;;
+            super::guitar&#40;&#41;;  // Access parent&#39;s function
+        &#125;
+    &#125;
+&#125;
+
+pub fn main&#40;&#41; &#123;
+    sound::instrument::clarinet&#40;&#41;;
+    // Output:
+    // 🎵
+    // 🎸
+&#125;</code></pre>
+<h3 id="example_3_sibling_access_with_privacy"><a href="#example_3_sibling_access_with_privacy" class="header-anchor">Example 3: Sibling Access with Privacy</a></h3>
+<pre><code class="language-rust">mod performance &#123;
+    pub mod stage &#123;
+        pub fn perform&#40;&#41; &#123;
+            // Can access sibling through parent
+            super::backstage::prepare&#40;&#41;;  // ✓ Works
+        &#125;
+    &#125;
+    
+    mod backstage &#123;  // Private module
+        pub fn prepare&#40;&#41; &#123;
+            println&#33;&#40;&quot;Getting ready...&quot;&#41;;
+        &#125;
+    &#125;
+&#125;
+
+// From outside the parent module:
+// performance::backstage::prepare&#40;&#41;;  // ✗ Error: backstage is private</code></pre>
+<p><strong>Key insight:</strong> Siblings can access each other through their common parent, even if one is private—as long as you&#39;re calling from within the parent module.</p>
+<hr />
+<h2 id="common_patterns"><a href="#common_patterns" class="header-anchor">Common Patterns</a></h2>
+<h3 id="pattern_1_library_with_binary"><a href="#pattern_1_library_with_binary" class="header-anchor">Pattern 1: Library with Binary</a></h3>
+<pre><code class="language-rust">// src/lib.rs
+pub mod config &#123;
+    pub fn load&#40;&#41; -&gt; Config &#123; /* ... */ &#125;
+&#125;
+
+pub mod parser &#123;
+    pub fn parse&#40;input: &amp;str&#41; -&gt; Result &#123; /* ... */ &#125;
+&#125;</code></pre>
+<pre><code class="language-rust">// src/main.rs
+use my_app::config;
+use my_app::parser;
+
+fn main&#40;&#41; &#123;
+    let cfg &#61; config::load&#40;&#41;;
+    let result &#61; parser::parse&#40;&quot;input&quot;&#41;;
+&#125;</code></pre>
+<p><strong>Best practice:</strong> Define your module tree in <code>lib.rs</code>, use it from <code>main.rs</code>. The binary becomes a thin client of your library.</p>
+<h3 id="pattern_2_nested_module_organization"><a href="#pattern_2_nested_module_organization" class="header-anchor">Pattern 2: Nested Module Organization</a></h3>
+<pre><code class="language-rust">// src/lib.rs
+pub mod network &#123;
+    pub mod server &#123;
+        pub fn start&#40;&#41; &#123;&#125;
+    &#125;
+    
+    pub mod client &#123;
+        pub fn connect&#40;&#41; &#123;
+            // Access sibling through parent
+            super::server::start&#40;&#41;;
+        &#125;
+    &#125;
+&#125;</code></pre>
+<h3 id="pattern_3_re-exporting_for_convenience"><a href="#pattern_3_re-exporting_for_convenience" class="header-anchor">Pattern 3: Re-exporting for Convenience</a></h3>
+<pre><code class="language-rust">mod internal &#123;
+    pub mod deeply &#123;
+        pub mod nested &#123;
+            pub fn useful_fn&#40;&#41; &#123;&#125;
+        &#125;
+    &#125;
+&#125;
+
+// Re-export for shorter paths
+pub use internal::deeply::nested::useful_fn;
+
+// Users can now do:
+// use my_crate::useful_fn;
+// Instead of:
+// use my_crate::internal::deeply::nested::useful_fn;</code></pre>
+<hr />
+<h2 id="path_resolution_rules"><a href="#path_resolution_rules" class="header-anchor">Path Resolution Rules</a></h2>
+<p><strong>How Rust finds items:</strong></p>
+<ol>
+<li><p><strong>Absolute path</strong> &#40;<code>crate::...</code>&#41;: Start at crate root</p>
+</li>
+<li><p><strong>Relative path</strong> &#40;module name&#41;: Start at current module</p>
+</li>
+<li><p><strong><code>super::</code></strong>: Go to parent module</p>
+</li>
+<li><p><strong><code>self::</code></strong>: Stay in current module &#40;usually implicit&#41;</p>
+</li>
+</ol>
+<p><strong>Privacy checks at each step:</strong></p>
+<ul>
+<li><p>Is the module <code>pub</code>?</p>
+</li>
+<li><p>Is the item inside <code>pub</code>?</p>
+</li>
+<li><p>Am I in the right scope to access private items?</p>
+</li>
+</ul>
+<hr />
+<h2 id="quick_reference"><a href="#quick_reference" class="header-anchor">Quick Reference</a></h2>
+<table><tr><th align="right">Path Type</th><th align="right">Syntax</th><th align="right">Example</th><th align="right">When to Use</th></tr><tr><td align="right"><strong>Absolute</strong></td><td align="right"><code>crate::...</code></td><td align="right"><code>crate::foo::bar&#40;&#41;</code></td><td align="right">Default choice, stable</td></tr><tr><td align="right"><strong>Relative</strong></td><td align="right"><code>module::...</code></td><td align="right"><code>foo::bar&#40;&#41;</code></td><td align="right">Tightly coupled code</td></tr><tr><td align="right"><strong>Parent</strong></td><td align="right"><code>super::...</code></td><td align="right"><code>super::parent_fn&#40;&#41;</code></td><td align="right">Access parent module</td></tr><tr><td align="right"><strong>Current</strong></td><td align="right"><code>self::...</code></td><td align="right"><code>self::sibling&#40;&#41;</code></td><td align="right">Explicit current module</td></tr></table>
+<hr />
+<h2 id="common_errors_and_solutions"><a href="#common_errors_and_solutions" class="header-anchor">Common Errors and Solutions</a></h2>
+<h3 id="error_module_is_private"><a href="#error_module_is_private" class="header-anchor">Error: &quot;module is private&quot;</a></h3>
+<pre><code class="language-rust">mod private &#123;
+    pub fn func&#40;&#41; &#123;&#125;
+&#125;
+
+// Error: module &#96;private&#96; is private
+// use private::func;</code></pre>
+<p><strong>Solution:</strong> Make the module <code>pub</code>:</p>
+<pre><code class="language-rust">pub mod private &#123;
+    pub fn func&#40;&#41; &#123;&#125;
+&#125;</code></pre>
+<h3 id="error_function_is_private"><a href="#error_function_is_private" class="header-anchor">Error: &quot;function is private&quot;</a></h3>
+<pre><code class="language-rust">pub mod public_mod &#123;
+    fn private_fn&#40;&#41; &#123;&#125;
+&#125;
+
+// Error: function &#96;private_fn&#96; is private
+// use public_mod::private_fn;</code></pre>
+<p><strong>Solution:</strong> Make the function <code>pub</code>:</p>
+<pre><code class="language-rust">pub mod public_mod &#123;
+    pub fn private_fn&#40;&#41; &#123;&#125;
+&#125;</code></pre>
+<h3 id="error_path_doesnt_exist"><a href="#error_path_doesnt_exist" class="header-anchor">Error: Path doesn&#39;t exist</a></h3>
+<pre><code class="language-rust">// Error: cannot find &#96;foo&#96; in this scope
+foo::bar&#40;&#41;;</code></pre>
+<p><strong>Solutions:</strong></p>
+<ul>
+<li><p>Add <code>mod foo;</code> to declare the module</p>
+</li>
+<li><p>Use correct path: <code>crate::foo::bar&#40;&#41;</code> or <code>super::foo::bar&#40;&#41;</code></p>
+</li>
+<li><p>Import with <code>use</code>: <code>use crate::foo;</code></p>
+</li>
+</ul>
+<hr />
+<h2 id="key_takeaways"><a href="#key_takeaways" class="header-anchor">Key Takeaways</a></h2>
+<ol>
+<li><p><strong>Paths navigate the module tree</strong> - Like file system paths, but for code</p>
+</li>
+<li><p><strong>Absolute paths</strong> &#40;<code>crate::</code>&#41; - Start from root, stable when refactoring</p>
+</li>
+<li><p><strong>Relative paths</strong> - Start from current module, shorter but fragile</p>
+</li>
+<li><p><strong><code>super</code></strong> - Navigate to parent module</p>
+</li>
+<li><p><strong>Every segment must be <code>pub</code></strong> - For external access</p>
+</li>
+<li><p><strong>Structs vs Enums</strong> - Structs have private fields by default, enum variants are always public</p>
+</li>
+<li><p><strong>Use absolute paths by default</strong> - Unless you have a reason to use relative</p>
+</li>
+</ol>
+<p><strong>Next up:</strong> The <code>use</code> keyword for creating shortcuts to long paths&#33;</p>
+<div class="page-foot">
+    Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
+    <br>
+    This work is licensed under <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.  Last modified: January 30, 2026.
+    <br>
+    Website built with <a href="https://github.com/tlienart/Franklin.jl">Franklin.jl</a> and the <a href="https://julialang.org">Julia language</a>.
+</div>
+</div><!-- CONTENT ENDS HERE -->
+    
+    
+        <script src="/libs/highlight/highlight.min.js"></script>
+<script>
+// Register Solidity language for highlight.js
+hljs.registerLanguage('solidity', function(hljs) {
+  return {
+    keywords: {
+      keyword: 'contract interface library pragma import using struct enum event modifier function returns return require revert assert emit new delete if else for while do break continue try catch throw this super constructor fallback receive ' +
+                'public private internal external pure view payable virtual override constant immutable anonymous indexed storage memory calldata',
+      literal: 'true false wei gwei ether seconds minutes hours days weeks years',
+      built_in: 'msg block tx abi now sender value gas data origin gasprice blockhash gasleft address uint int bytes string bool mapping'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)',
+        relevance: 0
+      },
+      {
+        className: 'type',
+        begin: '\\b(uint|int|bytes|byte|string|address|bool|ufixed|fixed)(\\d+x\\d+|\\d+)?\\b'
+      },
+      {
+        className: 'function',
+        beginKeywords: 'function modifier event constructor fallback receive',
+        end: '[{;]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'title',
+            begin: '[A-Za-z$_][0-9A-Za-z$_]*',
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: '\\(', end: '\\)',
+            contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE]
+          }
+        ]
+      }
+    ]
+  };
+});
+
+hljs.highlightAll();
+hljs.configure({tabReplace: '    '});
+</script>
+
+
+    
+  </body>
+</html>
