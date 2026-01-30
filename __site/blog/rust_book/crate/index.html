@@ -72,6 +72,59 @@ fn main&#40;&#41; &#123;
 pub fn useful_function&#40;&#41; &#123;
     // Other code can call this
 &#125;</code></pre>
+<p><strong>When to use each:</strong></p>
+<p><strong>Binary crate &#61; &quot;I want to run something&quot;</strong></p>
+<ul>
+<li><p>You type <code>./my-program</code> or <code>cargo run</code> and it executes</p>
+</li>
+<li><p>Examples:</p>
+<ul>
+<li><p>Command-line tools &#40;<code>grep</code>, <code>ls</code>, <code>cargo</code> itself&#41;</p>
+</li>
+<li><p>Web servers &#40;your API backend&#41;</p>
+</li>
+<li><p>Desktop applications</p>
+</li>
+<li><p>Games</p>
+</li>
+<li><p>Scripts that do something</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Library crate &#61; &quot;I want to share reusable code&quot;</strong></p>
+<ul>
+<li><p>You add it as a dependency in <code>Cargo.toml</code></p>
+</li>
+<li><p>Examples:</p>
+<ul>
+<li><p><code>serde</code> - serialization/deserialization</p>
+</li>
+<li><p><code>tokio</code> - async runtime</p>
+</li>
+<li><p><code>regex</code> - regular expressions</p>
+</li>
+<li><p>Your own shared utilities</p>
+</li>
+<li><p>Code that multiple projects need</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Real-world analogy:</strong></p>
+<ul>
+<li><p><strong>Binary</strong> &#61; a tool you pick up and use &#40;hammer, calculator&#41;</p>
+</li>
+<li><p><strong>Library</strong> &#61; a component you build with &#40;lumber, resistors&#41;</p>
+</li>
+</ul>
+<p>You can have both&#33; For example:</p>
+<ul>
+<li><p><code>ripgrep</code> &#40;the tool <code>rg</code>&#41; is a binary</p>
+</li>
+<li><p>But it&#39;s also published as a library so other Rust programs can use its search functionality</p>
+</li>
+</ul>
 <blockquote>
 <p><strong>What does <code>pub</code> mean?</strong></p>
 <p>The <code>pub</code> keyword means <strong>public</strong>. By default, everything in Rust is <em>private</em>—only accessible within the same module. Adding <code>pub</code> makes an item visible to code outside its module.</p>
@@ -81,6 +134,64 @@ pub fn useful_function&#40;&#41; &#123;
 &gt;</code></pre>
 <blockquote>
 <p>For a library crate, you <em>must</em> mark functions as <code>pub</code> if you want other code to use them. Without <code>pub</code>, your library would be useless—nothing would be accessible&#33;</p>
+</blockquote>
+<blockquote>
+<p><strong>Why keep functions private? &#40;Beyond separation of concerns&#41;</strong></p>
+<p><strong>1. Freedom to change implementation</strong></p>
+</blockquote>
+<pre><code class="language-rust">&gt; // Private helper - you can change it anytime
+&gt; fn calculate_internal&#40;x: i32&#41; -&gt; i32 &#123;
+&gt;     x * 2  // Later: change to x * 3, no one breaks
+&gt; &#125;
+&gt;
+&gt; // Public API - changing this breaks other people&#39;s code
+&gt; pub fn calculate&#40;x: i32&#41; -&gt; i32 &#123;
+&gt;     calculate_internal&#40;x&#41;
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>Once something is <code>pub</code> in a library, changing it is a <strong>breaking change</strong>. Users depend on it. Private items can be refactored freely.</p>
+<p><strong>2. Prevent misuse</strong></p>
+</blockquote>
+<pre><code class="language-rust">&gt; pub struct BankAccount &#123;
+&gt;     balance: f64,  // Private&#33; Can&#39;t be directly modified
+&gt; &#125;
+&gt;
+&gt; impl BankAccount &#123;
+&gt;     pub fn deposit&#40;&amp;mut self, amount: f64&#41; &#123;
+&gt;         if amount &gt; 0.0 &#123;  // Validation logic
+&gt;             self.balance &#43;&#61; amount;
+&gt;         &#125;
+&gt;     &#125;
+&gt;     
+&gt;     // Without privacy, users could do: account.balance &#61; -1000.0
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>Privacy enforces <strong>invariants</strong>—rules about valid states. Users must go through your validated public methods.</p>
+<p><strong>3. Reduce cognitive load</strong></p>
+</blockquote>
+<pre><code class="language-rust">&gt; pub mod http_client &#123;
+&gt;     pub fn get&#40;url: &amp;str&#41; -&gt; Response &#123; &#125;   // User sees this
+&gt;     pub fn post&#40;url: &amp;str&#41; -&gt; Response &#123; &#125;  // And this
+&gt;     
+&gt;     fn parse_headers&#40;&#41; &#123; &#125;      // Hidden complexity
+&gt;     fn handle_redirects&#40;&#41; &#123; &#125;   // Hidden complexity
+&gt;     fn retry_logic&#40;&#41; &#123; &#125;        // Hidden complexity
+&gt; &#125;
+&gt;</code></pre>
+<blockquote>
+<p>Users only see 2 functions instead of 5. They don&#39;t need to know internal details.</p>
+<p><strong>4. API stability</strong></p>
+<ul>
+<li><p>Public &#61; promises you make to users</p>
+</li>
+<li><p>Private &#61; implementation details</p>
+</li>
+<li><p>Fewer public items &#61; easier to maintain without breaking changes</p>
+</li>
+</ul>
+<p><strong>Rule of thumb:</strong> Start private, make public only when needed. You can always expose more later, but you can&#39;t easily take back a public API.</p>
 </blockquote>
 <blockquote>
 <p><strong>How <code>pub</code> relates to <code>use</code></strong></p>
@@ -143,20 +254,29 @@ pub fn useful_function&#40;&#41; &#123;
 <p>The compiler starts at the root and follows all the <code>mod</code> declarations to find the rest of your code.</p>
 <blockquote>
 <p><strong>What does <code>mod</code> mean?</strong></p>
-<p>The <code>mod</code> keyword declares a <strong>module</strong>—a way to organize code into separate namespaces. When the compiler sees <code>mod foo;</code>, it looks for the code in either:</p>
-<ul>
-<li><p><code>foo.rs</code> &#40;a file&#41;, or</p>
-</li>
-<li><p><code>foo/mod.rs</code> &#40;a folder with a mod.rs file&#41;</p>
-</li>
-</ul>
+<p>The <code>mod</code> keyword declares a <strong>module</strong>—a way to organize code into separate namespaces. You can define modules in two ways:</p>
+<p><strong>1. Inline &#40;code in curly braces&#41;:</strong></p>
 </blockquote>
-<pre><code class="language-rust">&gt; // In src/lib.rs or src/main.rs
-&gt; mod utils;    // Tells compiler: &quot;look for utils.rs or utils/mod.rs&quot;
-&gt; mod helpers;  // Tells compiler: &quot;look for helpers.rs or helpers/mod.rs&quot;
+<pre><code class="language-rust">&gt; mod utils &#123;
+&gt;     pub fn helper&#40;&#41; &#123;
+&gt;         println&#33;&#40;&quot;Helper function&quot;&#41;;
+&gt;     &#125;
+&gt; &#125;
 &gt;</code></pre>
 <blockquote>
-<p>Think of <code>mod</code> as creating a tree structure. The crate root is the trunk, and each <code>mod</code> declaration adds a branch. We&#39;ll cover modules in detail in a separate post.</p>
+<p><strong>2. External file &#40;with semicolon&#41;:</strong></p>
+</blockquote>
+<pre><code class="language-rust">&gt; mod utils;  // Tells compiler: look for utils.rs or utils/mod.rs
+&gt;</code></pre>
+<blockquote>
+<p>When you use <code>mod utils;</code>, the compiler searches for the module code in this order:</p>
+<ol>
+<li><p><code>utils.rs</code> &#40;a file next to the current file&#41;</p>
+</li>
+<li><p><code>utils/mod.rs</code> &#40;older style, still supported&#41;</p>
+</li>
+</ol>
+<p>Think of <code>mod</code> as creating a tree structure. The crate root is the trunk, and each <code>mod</code> declaration adds a branch.</p>
 </blockquote>
 <hr />
 <h2 id="what_is_a_package"><a href="#what_is_a_package" class="header-anchor">What is a Package?</a></h2>
@@ -199,6 +319,24 @@ my-project
 <li><p><strong>Any number of binary crates</strong> &#40;multiple executables are fine&#41;</p>
 </li>
 </ol>
+<blockquote>
+<p><strong>What do most Rust packages contain?</strong></p>
+<p><strong>Published to crates.io &#40;the Rust package registry&#41;:</strong></p>
+<ul>
+<li><p><strong>Library only</strong> &#40;most common&#41; - Like <code>serde</code>, <code>tokio</code>, <code>regex</code></p>
+</li>
+<li><p><strong>Library &#43; binary</strong> - Like <code>ripgrep</code> &#40;library for code reuse, binary as a tool&#41;</p>
+</li>
+</ul>
+<p><strong>Your own projects:</strong></p>
+<ul>
+<li><p><strong>Binary only</strong> - Simple applications, one-off tools</p>
+</li>
+<li><p><strong>Library &#43; binary</strong> - Recommended pattern &#40;library has logic, binary is thin wrapper&#41;</p>
+</li>
+</ul>
+<p>When you see &quot;add this to your <code>Cargo.toml</code>&quot; in documentation, you&#39;re adding a <strong>library crate</strong> as a dependency.</p>
+</blockquote>
 <hr />
 <h2 id="package_configurations"><a href="#package_configurations" class="header-anchor">Package Configurations</a></h2>
 <h3 id="binary_only_most_common_for_applications"><a href="#binary_only_most_common_for_applications" class="header-anchor">Binary Only &#40;most common for applications&#41;</a></h3>
@@ -275,8 +413,197 @@ fn main&#40;&#41; &#123;
     &#125;
 &#125;</code></pre>
 <hr />
+<h2 id="modules_organizing_code_within_a_crate"><a href="#modules_organizing_code_within_a_crate" class="header-anchor">Modules: Organizing Code Within a Crate</a></h2>
+<p>Modules let you organize code into namespaces and control privacy. Think of them like folders in a file system.</p>
+<h3 id="module_tree_structure"><a href="#module_tree_structure" class="header-anchor">Module Tree Structure</a></h3>
+<p>Every crate has a <strong>module tree</strong> starting from the implicit <code>crate</code> root. The tree is formed automatically based on your <code>mod</code> declarations—you don&#39;t create it explicitly.</p>
+<p><strong>Example 1: Inline modules &#40;all in one file&#41;</strong></p>
+<pre><code class="language-rust">// src/lib.rs
+mod front_of_house &#123;
+    mod hosting &#123;
+        fn add_to_waitlist&#40;&#41; &#123;&#125;
+        fn seat_at_table&#40;&#41; &#123;&#125;
+    &#125;
+    
+    mod serving &#123;
+        fn take_order&#40;&#41; &#123;&#125;
+        fn serve_order&#40;&#41; &#123;&#125;
+    &#125;
+&#125;</code></pre>
+<p>This automatically creates a tree:</p>
+<pre><code class="language-julia">crate
+└── front_of_house
+    ├── hosting
+    │   ├── add_to_waitlist
+    │   └── seat_at_table
+    └── serving
+        ├── take_order
+        └── serve_order</code></pre>
+<p><strong>Example 2: Same tree, but split across files</strong></p>
+<p>You get the <strong>exact same tree</strong> by writing <code>mod</code> separately in each file:</p>
+<pre><code class="language-rust">// src/lib.rs
+mod front_of_house;  // Load from file</code></pre>
+<pre><code class="language-rust">// src/front_of_house.rs
+mod hosting;  // Load from file
+mod serving;  // Load from file</code></pre>
+<pre><code class="language-rust">// src/front_of_house/hosting.rs
+fn add_to_waitlist&#40;&#41; &#123;&#125;
+fn seat_at_table&#40;&#41; &#123;&#125;</code></pre>
+<pre><code class="language-rust">// src/front_of_house/serving.rs
+fn take_order&#40;&#41; &#123;&#125;
+fn serve_order&#40;&#41; &#123;&#125;</code></pre>
+<p><strong>Same tree, different organization&#33;</strong> The compiler builds the tree by following the chain of <code>mod</code> declarations starting from the crate root.</p>
+<blockquote>
+<p><strong>Key insight:</strong> You write <code>mod foo;</code> in each file where you want to declare a child module. The tree emerges from these declarations—it&#39;s not something you draw or configure separately.</p>
+</blockquote>
+<p><strong>Terminology:</strong></p>
+<ul>
+<li><p><code>hosting</code> and <code>serving</code> are <strong>siblings</strong> &#40;both declared in <code>front_of_house.rs</code>&#41;</p>
+</li>
+<li><p><code>hosting</code> is a <strong>child</strong> of <code>front_of_house</code> &#40;declared inside it&#41;</p>
+</li>
+<li><p><code>front_of_house</code> is the <strong>parent</strong> of <code>hosting</code> &#40;contains its declaration&#41;</p>
+</li>
+</ul>
+<h3 id="module_file_organization"><a href="#module_file_organization" class="header-anchor">Module File Organization</a></h3>
+<p>You can organize modules across files. Here&#39;s a practical example:</p>
+<pre><code class="language-julia">my-restaurant/
+├── Cargo.toml
+└── src/
+    ├── lib.rs              ← Crate root
+    ├── front_of_house.rs   ← Module file
+    └── front_of_house/     ← Submodules folder
+        ├── hosting.rs
+        └── serving.rs</code></pre>
+<pre><code class="language-rust">// src/lib.rs
+pub mod front_of_house;  // Loads src/front_of_house.rs
+
+pub fn eat_at_restaurant&#40;&#41; &#123;
+    front_of_house::hosting::add_to_waitlist&#40;&#41;;
+&#125;</code></pre>
+<pre><code class="language-rust">// src/front_of_house.rs
+pub mod hosting;  // Loads src/front_of_house/hosting.rs
+pub mod serving;  // Loads src/front_of_house/serving.rs</code></pre>
+<pre><code class="language-rust">// src/front_of_house/hosting.rs
+pub fn add_to_waitlist&#40;&#41; &#123;
+    println&#33;&#40;&quot;Added to waitlist&quot;&#41;;
+&#125;</code></pre>
+<p><strong>Where the compiler looks for <code>mod foo;</code>:</strong></p>
+<table><tr><th align="right">Declared in</th><th align="right">Looks for code in</th></tr><tr><td align="right"><code>src/lib.rs</code> or <code>src/main.rs</code></td><td align="right"><code>src/foo.rs</code> or <code>src/foo/mod.rs</code></td></tr><tr><td align="right"><code>src/bar.rs</code></td><td align="right"><code>src/bar/foo.rs</code> or <code>src/bar/foo/mod.rs</code></td></tr><tr><td align="right"><code>src/bar/mod.rs</code></td><td align="right"><code>src/bar/foo.rs</code> or <code>src/bar/foo/mod.rs</code></td></tr></table>
+<blockquote>
+<p><strong>Modern style:</strong> Prefer <code>foo.rs</code> over <code>foo/mod.rs</code> unless you have submodules.</p>
+</blockquote>
+<h3 id="privacy_rules_the_crucial_part"><a href="#privacy_rules_the_crucial_part" class="header-anchor">Privacy Rules: The Crucial Part</a></h3>
+<p>Here&#39;s what trips people up—<strong>privacy in modules is asymmetric</strong>:</p>
+<ol>
+<li><p><strong>Child can see parent&#39;s private items</strong> ✓</p>
+</li>
+<li><p><strong>Parent cannot see child&#39;s private items</strong> ✗</p>
+</li>
+<li><p><strong>Siblings cannot see each other&#39;s private items</strong> ✗</p>
+</li>
+</ol>
+<pre><code class="language-rust">mod parent &#123;
+    fn parent_fn&#40;&#41; &#123;&#125;  // Private to module
+    
+    mod child &#123;
+        fn child_fn&#40;&#41; &#123;
+            super::parent_fn&#40;&#41;;  // ✓ Child can access parent&#39;s private items
+        &#125;
+    &#125;
+    
+    fn another_fn&#40;&#41; &#123;
+        child::child_fn&#40;&#41;;  // ✗ Error&#33; Parent can&#39;t access child&#39;s private items
+    &#125;
+&#125;</code></pre>
+<p><strong>To fix it, make child items public:</strong></p>
+<pre><code class="language-rust">mod parent &#123;
+    fn parent_fn&#40;&#41; &#123;&#125;
+    
+    pub mod child &#123;          // Module itself is public
+        pub fn child_fn&#40;&#41; &#123;  // Function inside is also public
+            super::parent_fn&#40;&#41;;
+        &#125;
+    &#125;
+    
+    fn another_fn&#40;&#41; &#123;
+        child::child_fn&#40;&#41;;  // ✓ Now it works&#33;
+    &#125;
+&#125;</code></pre>
+<blockquote>
+<p><strong>Key insight:</strong> <code>pub mod</code> makes the <em>module</em> visible. You still need <code>pub</code> on items <em>inside</em> the module to make them usable.</p>
+</blockquote>
+<h3 id="pub_mod_vs_mod"><a href="#pub_mod_vs_mod" class="header-anchor"><code>pub mod</code> vs <code>mod</code></a></h3>
+<pre><code class="language-rust">// src/lib.rs
+mod private_module &#123;    // Only this crate can use it
+    pub fn do_thing&#40;&#41; &#123;&#125;
+&#125;
+
+pub mod public_module &#123;  // Other crates can use it
+    pub fn do_thing&#40;&#41; &#123;&#125;
+&#125;</code></pre>
+<pre><code class="language-rust">// In another crate
+use my_crate::public_module::do_thing;   // ✓ Works
+use my_crate::private_module::do_thing;  // ✗ Error: module is private</code></pre>
+<p><strong>Rule of thumb:</strong></p>
+<ul>
+<li><p>Library crate? Use <code>pub mod</code> for modules you want to expose</p>
+</li>
+<li><p>Binary crate? Usually just <code>mod</code> &#40;no one else imports your code&#41;</p>
+</li>
+</ul>
+<h3 id="practical_example_a_full_module_setup"><a href="#practical_example_a_full_module_setup" class="header-anchor">Practical Example: A Full Module Setup</a></h3>
+<pre><code class="language-julia">game/
+├── Cargo.toml
+└── src/
+    ├── lib.rs
+    ├── player.rs
+    └── enemies/
+        ├── boss.rs
+        └── minion.rs</code></pre>
+<pre><code class="language-rust">// src/lib.rs
+pub mod player;
+pub mod enemies;
+
+pub fn start_game&#40;&#41; &#123;
+    player::spawn&#40;&#41;;
+    enemies::spawn_wave&#40;&#41;;
+&#125;</code></pre>
+<pre><code class="language-rust">// src/player.rs
+pub fn spawn&#40;&#41; &#123;
+    println&#33;&#40;&quot;Player spawned&quot;&#41;;
+&#125;
+
+fn internal_state&#40;&#41; &#123;  // Private, only for this module
+    // ...
+&#125;</code></pre>
+<pre><code class="language-rust">// src/enemies.rs &#40;note: this is enemies.rs, not enemies/mod.rs&#41;
+pub mod boss;
+pub mod minion;
+
+pub fn spawn_wave&#40;&#41; &#123;
+    boss::spawn&#40;&#41;;
+    minion::spawn_many&#40;5&#41;;
+&#125;</code></pre>
+<pre><code class="language-rust">// src/enemies/boss.rs
+pub fn spawn&#40;&#41; &#123;
+    println&#33;&#40;&quot;Boss spawned&quot;&#41;;
+&#125;</code></pre>
+<pre><code class="language-rust">// src/enemies/minion.rs
+pub fn spawn_many&#40;count: u32&#41; &#123;
+    for _ in 0..count &#123;
+        println&#33;&#40;&quot;Minion spawned&quot;&#41;;
+    &#125;
+&#125;</code></pre>
+<p>Now external code can do:</p>
+<pre><code class="language-rust">use game::player;
+use game::enemies::boss;
+
+player::spawn&#40;&#41;;
+boss::spawn&#40;&#41;;</code></pre>
+<hr />
 <h2 id="quick_reference"><a href="#quick_reference" class="header-anchor">Quick Reference</a></h2>
-<table><tr><th align="right">Term</th><th align="right">What it is</th><th align="right">Example</th></tr><tr><td align="right"><strong>Crate</strong></td><td align="right">Compilation unit</td><td align="right"><code>rand</code>, your <code>main.rs</code></td></tr><tr><td align="right"><strong>Binary crate</strong></td><td align="right">Compiles to executable</td><td align="right">CLI app, server</td></tr><tr><td align="right"><strong>Library crate</strong></td><td align="right">Compiles to reusable code</td><td align="right"><code>serde</code>, <code>tokio</code></td></tr><tr><td align="right"><strong>Crate root</strong></td><td align="right">Entry point for compiler</td><td align="right"><code>src/main.rs</code>, <code>src/lib.rs</code></td></tr><tr><td align="right"><strong>Package</strong></td><td align="right">Bundle of crates &#43; <code>Cargo.toml</code></td><td align="right">What <code>cargo new</code> creates</td></tr></table>
+<table><tr><th align="right">Term</th><th align="right">What it is</th><th align="right">Example</th></tr><tr><td align="right"><strong>Crate</strong></td><td align="right">Compilation unit</td><td align="right"><code>rand</code>, your <code>main.rs</code></td></tr><tr><td align="right"><strong>Binary crate</strong></td><td align="right">Compiles to executable</td><td align="right">CLI app, server</td></tr><tr><td align="right"><strong>Library crate</strong></td><td align="right">Compiles to reusable code</td><td align="right"><code>serde</code>, <code>tokio</code></td></tr><tr><td align="right"><strong>Crate root</strong></td><td align="right">Entry point for compiler</td><td align="right"><code>src/main.rs</code>, <code>src/lib.rs</code></td></tr><tr><td align="right"><strong>Package</strong></td><td align="right">Bundle of crates &#43; <code>Cargo.toml</code></td><td align="right">What <code>cargo new</code> creates</td></tr><tr><td align="right"><strong>Module</strong></td><td align="right">Namespace within a crate</td><td align="right"><code>mod utils &#123; &#125;</code> or <code>mod utils;</code></td></tr><tr><td align="right"><strong>Module tree</strong></td><td align="right">Hierarchy of modules</td><td align="right">Starts at <code>crate</code> root</td></tr></table>
 <hr />
 <h2 id="mental_model"><a href="#mental_model" class="header-anchor">Mental Model</a></h2>
 <pre><code class="language-julia">┌─────────────────────────────────────────┐
@@ -294,8 +621,34 @@ fn main&#40;&#41; &#123;
 │  │ Binary Crate │  │ Binary Crate │    │
 │  │ &#40;bin/a.rs&#41;   │  │ &#40;bin/b.rs&#41;   │    │
 │  └──────────────┘  └──────────────┘    │
-└─────────────────────────────────────────┘</code></pre>
-<p><strong>Next up:</strong> Modules—how to organize code <em>within</em> a crate.</p>
+└─────────────────────────────────────────┘
+
+    Each crate contains:
+    
+    crate &#40;root&#41;
+    ├── mod foo
+    │   ├── pub fn bar&#40;&#41;
+    │   └── mod baz
+    └── mod qux
+        └── pub struct Thing</code></pre>
+<hr />
+<h2 id="key_takeaways"><a href="#key_takeaways" class="header-anchor">Key Takeaways</a></h2>
+<ol>
+<li><p><strong>Package</strong> &#61; Cargo project with <code>Cargo.toml</code></p>
+</li>
+<li><p><strong>Crate</strong> &#61; What the compiler compiles &#40;binary or library&#41;</p>
+</li>
+<li><p><strong>Module</strong> &#61; Namespace organization within a crate</p>
+</li>
+<li><p><strong><code>pub</code></strong> &#61; Makes things visible outside their module</p>
+</li>
+<li><p><strong><code>mod</code></strong> &#61; Declares a module &#40;inline or external file&#41;</p>
+</li>
+<li><p><strong><code>use</code></strong> &#61; Creates shortcuts to avoid long paths</p>
+</li>
+<li><p><strong>Privacy rule</strong> &#61; Child sees parent&#39;s privates, but parent can&#39;t see child&#39;s privates</p>
+</li>
+</ol>
 <div class="page-foot">
     Contact me by <a href="mailto:skchu@wustl.edu">E-mail</a> | <a href="https://github.com/kchu25">Github</a> | <a href="https://www.linkedin.com/in/kchu1/">Linkedin</a>
     <br>
