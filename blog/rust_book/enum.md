@@ -1,6 +1,6 @@
 @def title = "Rust Enums vs Julia: Different Paths to the Same Goal"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch6-enums"]
 
 # Rust Enums vs Julia: Different Paths to the Same Goal
 

@@ -1,6 +1,6 @@
 @def title = "Rust Paths: Navigating the Module Tree"
 @def published = "30 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch7-modules"]
 
 # Rust Paths: Navigating the Module Tree
 

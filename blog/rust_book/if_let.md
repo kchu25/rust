@@ -1,6 +1,6 @@
 @def title = "if let and let else: When Match Is Overkill"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch6-enums"]
 
 # `if let` and `let else`: When Match Is Overkill
 

@@ -1,6 +1,6 @@
 @def title = "Do Reference Expressions Return the Object in Rust?"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch5-structs"]
 
 # Do Reference Expressions Return the Object in Rust?
 

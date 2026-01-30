@@ -1,6 +1,6 @@
 @def title = "Understanding #[derive(Debug)] in Rust"
 @def published = "30 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch5-structs"]
 
 # Understanding #[derive(Debug)] in Rust
 

@@ -1,6 +1,6 @@
 @def title = "Rust's Match: A Gentler Introduction"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch6-enums"]
 
 # Rust's Match: A Gentler Introduction
 

@@ -1,6 +1,6 @@
 @def title = "Rust Ownership, Simplified"
 @def published = "28 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch4-ownership"]
 
 # Rust Ownership, Simplified
 

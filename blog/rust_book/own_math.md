@@ -1,6 +1,6 @@
 @def title = "Rust Ownership & Borrowing: A Mathematical View"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch4-ownership"]
 
 # Rust Ownership & Borrowing: A Mathematical View
 

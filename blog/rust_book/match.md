@@ -1,6 +1,6 @@
 @def title = "Understanding Rust's Match (and why the weird terminology)"
 @def published = "29 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch6-enums"]
 
 # Understanding Rust's Match (and why the weird terminology)
 

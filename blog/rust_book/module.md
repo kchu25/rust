@@ -1,6 +1,6 @@
 @def title = "Rust Modules: Organizing Your Code"
 @def published = "30 January 2026"
-@def tags = ["rust-basics"]
+@def tags = ["rust-book-ch7-modules"]
 
 # Rust Modules: Organizing Your Code
 
